@@ -52,7 +52,7 @@ export const logRequest = (config: InternalAxiosRequestConfig) => {
   if (typeof parsedData === 'string') {
     try {
       parsedData = JSON.parse(parsedData);
-    } catch (_) {
+    } catch {
       // keep as string if not JSON
     }
   }

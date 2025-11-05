@@ -92,7 +92,7 @@ export interface NotificationListResponse {
   nextCursor?: NotificationCursor | null;
 }
 
-export interface NotificationDetailResponse extends NotificationItem {}
+export type NotificationDetailResponse = NotificationItem;
 
 export interface NotificationWebSocketMessage {
   type: 'NOTIFICATION' | 'ACK' | 'RESYNC' | string;

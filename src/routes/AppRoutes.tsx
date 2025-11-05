@@ -8,7 +8,7 @@ import SearchPage from '@/pages/SearchPage';
 import CreatePostPage from '@/pages/CreatePostPage';
 import ProfilePage from '@/pages/ProfilePage';
 import ProfileSetupPage from '@/pages/ProfileSetupPage';
-import MyProfileDetailPage from '@/pages/MyProfileDetailPage';
+import MyProfileSummaryPage from '@/pages/MyProfileSummaryPage';
 import NotificationsPage from '@/pages/NotificationsPage';
 import NotificationDetailPage from '@/pages/NotificationDetailPage';
 import PostDetailPage from '@/pages/PostDetailPage';
@@ -25,7 +25,7 @@ export const AppRoutes = () => {
           <Route path="compose" element={<CreatePostPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="profile/setup" element={<ProfileSetupPage />} />
-          <Route path="profile/details" element={<MyProfileDetailPage />} />
+          <Route path="profile/details" element={<MyProfileSummaryPage />} />
           <Route path="users/:userId" element={<UserProfilePage />} />
           <Route path="posts/:postId" element={<PostDetailPage />} />
           <Route path="notifications" element={<NotificationsPage />} />

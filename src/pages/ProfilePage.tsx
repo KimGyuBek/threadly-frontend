@@ -1,19 +1,20 @@
-import { useMemo } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 
 import { fetchMyProfile, fetchUserFollowStats } from '@/features/profile/api/profileApi';
+import FollowListModal from '@/features/profile/components/FollowListModal';
+import type { FollowListType } from '@/features/profile/components/FollowListModal';
 import { buildErrorMessage } from '@/utils/errorMessage';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
-
   const profileQuery = useQuery({
-    queryKey: ['me', 'profile', 'summary'],
+    queryKey: ['me', 'profile', 'detail'],
     queryFn: fetchMyProfile,
     retry: (count, error) => {
-      const message = buildErrorMessage(error, '프로필 정보를 불러오지 못했습니다.');
+      const message = buildErrorMessage(error, '프로필을 불러오지 못했습니다.');
       if (count === 1) {
         toast.error(message);
       }
@@ -30,26 +31,30 @@ const ProfilePage = () => {
     enabled: Boolean(userId),
   });
 
+  const [activeList, setActiveList] = useState<FollowListType | null>(null);
+
   const followerCount = followStatsQuery.data?.followerCount ?? profile?.followerCount ?? 0;
   const followingCount = followStatsQuery.data?.followingCount ?? profile?.followingCount ?? 0;
 
-  const summaryItems = useMemo(
-    () => [
-      { label: '팔로워', value: followerCount },
-      { label: '팔로잉', value: followingCount },
-      { label: '게시물', value: '-' },
-    ],
-    [followerCount, followingCount],
-  );
+  const openList = (listType: FollowListType) => setActiveList(listType);
+  const closeList = () => setActiveList(null);
+
+  const handleEditProfile = () => {
+    navigate('/profile/setup');
+  };
+
+  const handleViewSummary = () => {
+    navigate('/profile/details');
+  };
 
   if (profileQuery.isLoading) {
-    return <div className="profile-container">프로필을 불러오는 중...</div>;
+    return <div className="profile-container">프로필을 불러오는 중입니다...</div>;
   }
 
   if (!profile) {
     return (
       <div className="feed-placeholder feed-placeholder--error">
-        <p>프로필 정보를 불러오지 못했습니다.</p>
+        <p>프로필을 불러오지 못했습니다.</p>
         <button type="button" className="btn" onClick={() => navigate(-1)}>
           뒤로가기
         </button>
@@ -57,40 +62,43 @@ const ProfilePage = () => {
     );
   }
 
-  const initial = profile.nickname?.charAt(0) ?? profile.userId.charAt(0);
+  const displayName = profile.nickname;
+  const initial = displayName?.charAt(0) ?? profile.userId.charAt(0);
 
   return (
     <div className="profile-container">
+      <button type="button" className="btn btn--secondary" onClick={() => navigate(-1)}>
+        뒤로가기
+      </button>
       <div className="profile-header">
         <div className="profile-avatar">
           {profile.profileImageUrl ? (
-            <img src={profile.profileImageUrl} alt={profile.nickname} />
+            <img src={profile.profileImageUrl} alt={displayName} />
           ) : (
             <span>{initial}</span>
           )}
         </div>
         <div>
-          <h2>{profile.nickname}</h2>
+          <h2>{displayName}</h2>
           <p className="profile-username">@{profile.userId}</p>
           {profile.statusMessage ? <p className="profile-status">{profile.statusMessage}</p> : null}
-        </div>
-      </div>
-
-      <div className="profile-summary-card">
-        <div className="profile-summary-grid">
-          {summaryItems.map(({ label, value }) => (
-            <div key={label} className="profile-summary-item">
-              <span className="profile-summary-count">{value?.toLocaleString?.() ?? value}</span>
-              <span className="profile-summary-label">{label}</span>
-            </div>
-          ))}
+          <div className="profile-stats">
+            <button type="button" className="profile-stat" onClick={() => openList('followers')}>
+              <span className="profile-stat-count">{followerCount.toLocaleString()}</span>
+              <span className="profile-stat-label">팔로워</span>
+            </button>
+            <button type="button" className="profile-stat" onClick={() => openList('followings')}>
+              <span className="profile-stat-count">{followingCount.toLocaleString()}</span>
+              <span className="profile-stat-label">팔로잉</span>
+            </button>
+          </div>
         </div>
         <div className="profile-summary-actions">
-          <button type="button" className="btn btn--primary" onClick={() => navigate('/profile/details')}>
-            상세보기
-          </button>
-          <button type="button" className="btn btn--secondary" onClick={() => navigate('/profile/setup')}>
+          <button type="button" className="btn btn--primary" onClick={handleEditProfile}>
             프로필 수정
+          </button>
+          <button type="button" className="btn btn--secondary" onClick={handleViewSummary}>
+            상세보기
           </button>
         </div>
       </div>
@@ -99,6 +107,31 @@ const ProfilePage = () => {
         <h3>소개</h3>
         <p>{profile.bio || '자기소개가 없습니다.'}</p>
       </div>
+
+      <div className="profile-section">
+        <h3>세부 정보</h3>
+        <ul className="profile-details">
+          <li>
+            <span>연락처</span>
+            <span>{profile.phone || '-'}</span>
+          </li>
+          <li>
+            <span>성별</span>
+            <span>{profile.genderType || '-'}</span>
+          </li>
+          <li>
+            <span>공개 여부</span>
+            <span>{profile.isPrivate ? '비공개' : '공개'}</span>
+          </li>
+        </ul>
+      </div>
+
+      <FollowListModal
+        userId={profile.userId}
+        type={activeList ?? 'followers'}
+        isOpen={Boolean(activeList)}
+        onClose={closeList}
+      />
     </div>
   );
 };

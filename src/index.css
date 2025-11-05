@@ -1027,6 +1027,13 @@ a {
   display: flex;
   gap: 0.75rem;
   align-items: center;
+  cursor: pointer;
+}
+
+.follow-list-item:focus-visible {
+  outline: 2px solid rgba(109, 149, 255, 0.45);
+  border-radius: 14px;
+  outline-offset: 4px;
 }
 
 .follow-list-avatar {

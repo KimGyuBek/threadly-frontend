@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import type { MouseEvent } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 
 import {
   fetchFollowersList,
@@ -49,6 +50,7 @@ const formatSince = (value?: string | null) => {
 
 const FollowListModal = ({ userId, type, isOpen, onClose }: FollowListModalProps) => {
   const queryKey = useMemo(() => ['follow-list', type, userId], [type, userId]);
+  const navigate = useNavigate();
 
   const listQuery = useInfiniteQuery({
     queryKey,
@@ -142,7 +144,31 @@ const FollowListModal = ({ userId, type, isOpen, onClose }: FollowListModalProps
               {users.map((user) => {
                 const since = formatSince(user.since);
                 return (
-                  <li key={user.userId} className="follow-list-item">
+                  <li
+                    key={user.userId}
+                    className="follow-list-item"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
+                      onClose();
+                      if (user.userId === userId) {
+                        navigate('/profile');
+                      } else {
+                        navigate(`/users/${user.userId}`);
+                      }
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        onClose();
+                        if (user.userId === userId) {
+                          navigate('/profile');
+                        } else {
+                          navigate(`/users/${user.userId}`);
+                        }
+                      }
+                    }}
+                  >
                     <div className="follow-list-avatar">
                       {user.profileImageUrl ? (
                         <img src={user.profileImageUrl} alt={user.nickname || user.userId} />
