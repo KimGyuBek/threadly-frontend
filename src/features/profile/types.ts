@@ -6,11 +6,37 @@ export interface UserPreview {
 
 export type FollowStatus = 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'SELF';
 
+export interface FollowStats {
+  followerCount: number;
+  followingCount: number;
+}
+
+export interface FollowListParams {
+  userId: string;
+  cursorTimestamp?: string | null;
+  cursorId?: string | null;
+  limit?: number;
+}
+
+export interface FollowListUser {
+  userId: string;
+  nickname: string;
+  profileImageUrl?: string;
+  since?: string | null;
+}
+
+export interface FollowListResult {
+  users: FollowListUser[];
+  nextCursor: { cursorTimestamp: string | null; cursorId: string | null } | null;
+}
+
 export interface UserProfile {
   user: UserPreview;
   statusMessage?: string;
   bio?: string;
   followStatus: FollowStatus;
+  followerCount?: number;
+  followingCount?: number;
 }
 
 export interface MyProfile {

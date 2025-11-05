@@ -15,6 +15,8 @@ export const toProfile = (payload: unknown): UserProfile => {
     statusMessage: (data['statusMessage'] ?? data['status_message'] ?? '') as string,
     bio: (data['bio'] ?? '') as string,
     followStatus: (data['followStatus'] ?? data['follow_status'] ?? 'NONE').toString() as FollowStatus,
+    followerCount: Number(data['followerCount'] ?? data['follower_count'] ?? 0),
+    followingCount: Number(data['followingCount'] ?? data['following_count'] ?? 0),
   };
 };
 
@@ -29,7 +31,7 @@ export const toMyProfile = (payload: unknown): MyProfile => {
     genderType: (data['genderType'] ?? data['gender'] ?? '') as string,
     profileImageUrl: (data['profileImageUrl'] ?? undefined) as string | undefined,
     isPrivate: Boolean(data['isPrivate'] ?? false),
-    followerCount: Number(data['followerCount'] ?? 0),
-    followingCount: Number(data['followingCount'] ?? 0),
+    followerCount: Number(data['followerCount'] ?? data['follower_count'] ?? 0),
+    followingCount: Number(data['followingCount'] ?? data['following_count'] ?? 0),
   };
 };
