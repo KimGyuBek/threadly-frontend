@@ -11,10 +11,14 @@ import FollowListModal from '@/features/profile/components/FollowListModal';
 import type { FollowListType } from '@/features/profile/components/FollowListModal';
 import { buildErrorMessage } from '@/utils/errorMessage';
 import { useFollowActions } from '@/hooks/useFollowActions';
+import { useAuthStore } from '@/store/authStore';
+import { isAxiosError } from 'axios';
+import { isThreadlyApiError } from '@/utils/threadlyError';
 
 const UserProfilePage = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
+  const hasAccessToken = useAuthStore((state) => Boolean(state.tokens?.accessToken));
 
   const profileQuery = useQuery({
     queryKey: ['user', userId],
@@ -34,12 +38,32 @@ const UserProfilePage = () => {
 
   const followStatsQuery = useQuery({
     queryKey: ['followStats', targetUserId],
-    queryFn: () => fetchUserFollowStats(targetUserId!),
-    enabled: Boolean(targetUserId),
+    enabled: Boolean(targetUserId && hasAccessToken),
+    retry: false,
+    queryFn: async () => {
+      if (!targetUserId) {
+        return null;
+      }
+      try {
+        return await fetchUserFollowStats(targetUserId);
+      } catch (error) {
+        if (
+          isThreadlyApiError(error) &&
+          (error.status === 401 || error.status === 403 || error.code === 'TLY2006')
+        ) {
+          return null;
+        }
+        if (isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
+          return null;
+        }
+        throw error;
+      }
+    },
   });
 
-  const followerCount = followStatsQuery.data?.followerCount ?? profile?.followerCount ?? 0;
-  const followingCount = followStatsQuery.data?.followingCount ?? profile?.followingCount ?? 0;
+  const followStats = followStatsQuery.isSuccess ? followStatsQuery.data : null;
+  const followerCount = followStats?.followerCount ?? profile?.followerCount ?? 0;
+  const followingCount = followStats?.followingCount ?? profile?.followingCount ?? 0;
   const [activeList, setActiveList] = useState<FollowListType | null>(null);
 
   const followActions = useFollowActions({

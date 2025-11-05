@@ -7,9 +7,13 @@ import { fetchMyProfile, fetchUserFollowStats } from '@/features/profile/api/pro
 import FollowListModal from '@/features/profile/components/FollowListModal';
 import type { FollowListType } from '@/features/profile/components/FollowListModal';
 import { buildErrorMessage } from '@/utils/errorMessage';
+import { useAuthStore } from '@/store/authStore';
+import { isAxiosError } from 'axios';
+import { isThreadlyApiError } from '@/utils/threadlyError';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
+  const hasAccessToken = useAuthStore((state) => Boolean(state.tokens?.accessToken));
   const profileQuery = useQuery({
     queryKey: ['me', 'profile', 'detail'],
     queryFn: fetchMyProfile,
@@ -27,14 +31,34 @@ const ProfilePage = () => {
 
   const followStatsQuery = useQuery({
     queryKey: ['followStats', userId],
-    queryFn: () => fetchUserFollowStats(userId!),
-    enabled: Boolean(userId),
+    enabled: Boolean(userId && hasAccessToken),
+    retry: false,
+    queryFn: async () => {
+      if (!userId) {
+        return null;
+      }
+      try {
+        return await fetchUserFollowStats(userId);
+      } catch (error) {
+        if (
+          isThreadlyApiError(error) &&
+          (error.status === 401 || error.status === 403 || error.code === 'TLY2006')
+        ) {
+          return null;
+        }
+        if (isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
+          return null;
+        }
+        throw error;
+      }
+    },
   });
 
   const [activeList, setActiveList] = useState<FollowListType | null>(null);
 
-  const followerCount = followStatsQuery.data?.followerCount ?? profile?.followerCount ?? 0;
-  const followingCount = followStatsQuery.data?.followingCount ?? profile?.followingCount ?? 0;
+  const followStats = followStatsQuery.isSuccess ? followStatsQuery.data : null;
+  const followerCount = followStats?.followerCount ?? profile?.followerCount ?? 0;
+  const followingCount = followStats?.followingCount ?? profile?.followingCount ?? 0;
 
   const openList = (listType: FollowListType) => setActiveList(listType);
   const closeList = () => setActiveList(null);

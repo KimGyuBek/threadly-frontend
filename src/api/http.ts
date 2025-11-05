@@ -168,10 +168,14 @@ const setupInterceptors = (instance: AxiosInstance): void => {
     (response) => handleThreadlyResponse(response),
     async (error) => {
       logError(error);
-      const originalRequest = error.config as InternalAxiosRequestConfig & { [RETRY_FLAG]?: boolean };
+      const originalRequest = error.config as InternalAxiosRequestConfig & {
+        [RETRY_FLAG]?: boolean;
+        skipAuthRetry?: boolean;
+      };
       const responseData = error.response?.data as { code?: string } | undefined;
       const shouldRetry =
         !originalRequest?.[RETRY_FLAG] &&
+        !originalRequest?.skipAuthRetry &&
         error.response &&
         (error.response.status === 401 ||
           (error.response.status === 403 && responseData?.code === 'TOKEN_EXPIRED'));

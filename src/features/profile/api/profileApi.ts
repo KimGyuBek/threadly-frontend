@@ -1,4 +1,5 @@
 import { threadlyApi } from '@/api/http';
+import type { AxiosRequestConfig } from 'axios';
 import type {
   FollowStatus,
   FollowStats,
@@ -51,7 +52,9 @@ export const fetchUserProfile = async (userId: string): Promise<UserProfile> => 
 };
 
 export const fetchUserFollowStats = async (userId: string): Promise<FollowStats> => {
-  const response = await threadlyApi.get(`/api/follows/${userId}/stats`);
+  const response = await threadlyApi.get(`/api/follows/${userId}/stats`, {
+    skipAuthRetry: true,
+  } as AxiosRequestConfig & { skipAuthRetry: boolean });
   const data = unwrapThreadlyResponse<Record<string, unknown>>(response.data);
   return {
     followerCount: Number(data['followerCount'] ?? data['follower_count'] ?? 0),
@@ -160,7 +163,8 @@ export const fetchFollowersList = async (
 ): Promise<FollowListResult> => {
   const response = await threadlyApi.get('/api/follows/followers', {
     params: buildFollowListParams(params),
-  });
+    skipAuthRetry: true,
+  } as AxiosRequestConfig & { skipAuthRetry: boolean });
   const data = unwrapThreadlyResponse<Record<string, unknown>>(response.data);
   return mapFollowListResponse(data, 'follower', 'followedAt');
 };
@@ -170,7 +174,8 @@ export const fetchFollowingsList = async (
 ): Promise<FollowListResult> => {
   const response = await threadlyApi.get('/api/follows/followings', {
     params: buildFollowListParams(params),
-  });
+    skipAuthRetry: true,
+  } as AxiosRequestConfig & { skipAuthRetry: boolean });
   const data = unwrapThreadlyResponse<Record<string, unknown>>(response.data);
   return mapFollowListResponse(data, 'following', 'followingAt');
 };

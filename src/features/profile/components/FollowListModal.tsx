@@ -9,6 +9,7 @@ import {
   type FollowListResult,
   type FollowListUser,
 } from '@/features/profile/api/profileApi';
+import { useAuthStore } from '@/store/authStore';
 
 export type FollowListType = 'followers' | 'followings';
 
@@ -51,6 +52,7 @@ const formatSince = (value?: string | null) => {
 const FollowListModal = ({ userId, type, isOpen, onClose }: FollowListModalProps) => {
   const queryKey = useMemo(() => ['follow-list', type, userId], [type, userId]);
   const navigate = useNavigate();
+  const hasAccessToken = useAuthStore((state) => Boolean(state.tokens?.accessToken));
 
   const listQuery = useInfiniteQuery({
     queryKey,
@@ -74,7 +76,7 @@ const FollowListModal = ({ userId, type, isOpen, onClose }: FollowListModalProps
     },
     initialPageParam: { cursorTimestamp: null, cursorId: null },
     getNextPageParam,
-    enabled: isOpen && Boolean(userId),
+    enabled: isOpen && Boolean(userId) && hasAccessToken,
     staleTime: 0,
   });
 
@@ -107,6 +109,24 @@ const FollowListModal = ({ userId, type, isOpen, onClose }: FollowListModalProps
 
   if (!isOpen) {
     return null;
+  }
+
+  if (!hasAccessToken) {
+    return (
+      <div className="follow-list-overlay" role="dialog" aria-modal="true" onClick={onClose}>
+        <div className="follow-list-modal">
+          <div className="follow-list-header">
+            <h3 className="follow-list-title">팔로우 정보</h3>
+            <button type="button" className="follow-list-close" onClick={onClose}>
+              ✕
+            </button>
+          </div>
+          <div className="follow-list-content">
+            <div className="follow-list-placeholder">팔로우 정보를 보려면 먼저 로그인하세요.</div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const handleOverlayClick = (event: MouseEvent<HTMLDivElement>) => {
