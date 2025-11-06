@@ -3,12 +3,8 @@ import type { MouseEvent } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
-import {
-  fetchFollowersList,
-  fetchFollowingsList,
-  type FollowListResult,
-  type FollowListUser,
-} from '@/features/profile/api/profileApi';
+import { fetchFollowersList, fetchFollowingsList } from '@/features/profile/api/profileApi';
+import type { FollowListResult, FollowListUser } from '@/features/profile/types';
 import { useAuthStore } from '@/store/authStore';
 
 export type FollowListType = 'followers' | 'followings';

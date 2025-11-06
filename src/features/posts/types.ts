@@ -24,6 +24,22 @@ export interface FeedPost {
   isLiked: boolean;
 }
 
+export interface PostComment {
+  postId: string;
+  commentId: string;
+  commenter: PostAuthor;
+  commentedAt: string;
+  likeCount: number;
+  content: string;
+  liked: boolean;
+}
+
+export interface PostCommentsPage {
+  comments: PostComment[];
+  nextCursor: { cursorTimestamp: string | null; cursorId: string | null } | null;
+  unauthorized?: boolean;
+}
+
 export interface PostsCursor {
   timestamp: string;
   id: string;

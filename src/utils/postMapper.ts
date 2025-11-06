@@ -1,4 +1,12 @@
-import type { FeedPost, PostAuthor, PostImage, FeedResponse, PostsCursor } from '@/features/posts/types';
+import type {
+  FeedPost,
+  PostAuthor,
+  PostImage,
+  FeedResponse,
+  PostsCursor,
+  PostComment,
+  PostCommentsPage,
+} from '@/features/posts/types';
 import { unwrapThreadlyResponse } from './api';
 
 const mapAuthor = (raw: unknown, fallbackUserId?: string): PostAuthor => {
@@ -36,7 +44,23 @@ const mapImages = (raw: unknown): PostImage[] => {
       imageUrl: (data['imageUrl'] ?? data['image_url'] ?? '').toString(),
       imageOrder: Number(data['imageOrder'] ?? data['image_order'] ?? index),
     };
-  });
+    });
+};
+
+const mapComment = (raw: unknown): PostComment => {
+  if (!raw || typeof raw !== 'object') {
+    throw new Error('Invalid comment payload');
+  }
+  const data = raw as Record<string, unknown>;
+  return {
+    postId: (data['postId'] ?? data['post_id'] ?? '').toString(),
+    commentId: (data['commentId'] ?? data['comment_id'] ?? '').toString(),
+    commenter: mapAuthor(data['commenter']),
+    commentedAt: data['commentedAt']?.toString() ?? data['commented_at']?.toString() ?? '',
+    likeCount: Number(data['likeCount'] ?? data['like_count'] ?? 0),
+    content: (data['content'] ?? '').toString(),
+    liked: Boolean(data['liked'] ?? false),
+  };
 };
 
 export const toFeedPost = (raw: unknown): FeedPost => {
@@ -84,6 +108,23 @@ export const toFeedResponse = (payload: unknown): FeedResponse => {
   return {
     content,
     hasNext: Boolean(data.hasNext),
+    nextCursor,
+  };
+};
+
+export const toPostCommentsPage = (payload: unknown): PostCommentsPage => {
+  const data = unwrapThreadlyResponse<Record<string, unknown>>(payload);
+  const content = Array.isArray(data['content']) ? data['content'].map(mapComment) : [];
+  const nextCursorRaw = (data['nextCursor'] ?? data['next_cursor']) as Record<string, unknown> | undefined;
+  let nextCursor: { cursorTimestamp: string | null; cursorId: string | null } | null = null;
+  if (nextCursorRaw && typeof nextCursorRaw === 'object') {
+    nextCursor = {
+      cursorTimestamp: nextCursorRaw['cursorTimestamp']?.toString() ?? nextCursorRaw['cursor_timestamp']?.toString() ?? null,
+      cursorId: nextCursorRaw['cursorId']?.toString() ?? nextCursorRaw['cursor_id']?.toString() ?? null,
+    };
+  }
+  return {
+    comments: content,
     nextCursor,
   };
 };

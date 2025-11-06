@@ -51,10 +51,19 @@ export const fetchUserProfile = async (userId: string): Promise<UserProfile> => 
   return toProfile(response.data);
 };
 
-export const fetchUserFollowStats = async (userId: string): Promise<FollowStats> => {
-  const response = await threadlyApi.get(`/api/follows/${userId}/stats`, {
-    skipAuthRetry: true,
-  } as AxiosRequestConfig & { skipAuthRetry: boolean });
+interface FetchFollowStatsOptions {
+  skipAuthRetry?: boolean;
+}
+
+export const fetchUserFollowStats = async (
+  userId: string,
+  options?: FetchFollowStatsOptions,
+): Promise<FollowStats> => {
+  const config: AxiosRequestConfig & { skipAuthRetry?: boolean } = {};
+  if (options?.skipAuthRetry) {
+    config.skipAuthRetry = true;
+  }
+  const response = await threadlyApi.get(`/api/follows/${userId}/stats`, config);
   const data = unwrapThreadlyResponse<Record<string, unknown>>(response.data);
   return {
     followerCount: Number(data['followerCount'] ?? data['follower_count'] ?? 0),

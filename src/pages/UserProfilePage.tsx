@@ -45,7 +45,7 @@ const UserProfilePage = () => {
         return null;
       }
       try {
-        return await fetchUserFollowStats(targetUserId);
+        return await fetchUserFollowStats(targetUserId, { skipAuthRetry: true });
       } catch (error) {
         if (
           isThreadlyApiError(error) &&

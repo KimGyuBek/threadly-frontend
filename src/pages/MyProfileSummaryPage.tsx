@@ -5,14 +5,11 @@ import { toast } from 'react-toastify';
 
 import { fetchMyProfile, fetchUserFollowStats } from '@/features/profile/api/profileApi';
 import { buildErrorMessage } from '@/utils/errorMessage';
-import { useAuthStore } from '@/store/authStore';
 import { isAxiosError } from 'axios';
 import { isThreadlyApiError } from '@/utils/threadlyError';
 
 const MyProfileSummaryPage = () => {
   const navigate = useNavigate();
-
-  const hasAccessToken = useAuthStore((state) => Boolean(state.tokens?.accessToken));
 
   const profileQuery = useQuery({
     queryKey: ['me', 'profile', 'summary'],
@@ -30,15 +27,15 @@ const MyProfileSummaryPage = () => {
   const userId = profile?.userId;
 
   const followStatsQuery = useQuery({
-    queryKey: ['followStats', userId],
-    enabled: Boolean(userId && hasAccessToken),
+    queryKey: ['followStats', userId, 'summary'],
+    enabled: Boolean(userId?.length),
     retry: false,
     queryFn: async () => {
       if (!userId) {
         return null;
       }
       try {
-        return await fetchUserFollowStats(userId);
+        return await fetchUserFollowStats(userId, { skipAuthRetry: true });
       } catch (error) {
         if (
           isThreadlyApiError(error) &&
@@ -54,9 +51,13 @@ const MyProfileSummaryPage = () => {
     },
   });
 
-  const followStats = followStatsQuery.isSuccess ? followStatsQuery.data : null;
-  const followerCount = followStats?.followerCount ?? profile?.followerCount ?? 0;
-  const followingCount = followStats?.followingCount ?? profile?.followingCount ?? 0;
+  const followStats = followStatsQuery.data;
+  const followerCount = followStatsQuery.isSuccess
+    ? followStats?.followerCount ?? profile?.followerCount ?? 0
+    : profile?.followerCount ?? 0;
+  const followingCount = followStatsQuery.isSuccess
+    ? followStats?.followingCount ?? profile?.followingCount ?? 0
+    : profile?.followingCount ?? 0;
 
   const summaryItems = useMemo(
     () => [

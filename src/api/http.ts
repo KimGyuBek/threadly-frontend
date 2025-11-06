@@ -1,4 +1,4 @@
-import axios, { isAxiosError } from 'axios';
+import axios, { AxiosHeaders, isAxiosError } from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 
 import { appConfig } from '@/config/env';
@@ -91,20 +91,24 @@ const shouldSkipAuth = (url?: string): boolean => {
   return url.includes('/api/auth/login') || url.includes('/api/auth/reissue');
 };
 
+const ensureAxiosHeaders = (
+  headers?: InternalAxiosRequestConfig['headers'],
+): AxiosHeaders => {
+  if (headers instanceof AxiosHeaders) {
+    return headers;
+  }
+  return AxiosHeaders.from(headers ?? {});
+};
+
 const attachAuthHeader = (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
   if (shouldSkipAuth(config.url)) {
     return config;
   }
   const token = getAccessToken();
   if (token) {
-    if (!config.headers) {
-      config.headers = {};
-    }
-    if (typeof config.headers.set === 'function') {
-      config.headers.set('Authorization', `Bearer ${token}`);
-    } else {
-      (config.headers as Record<string, unknown>).Authorization = `Bearer ${token}`;
-    }
+    const headers = ensureAxiosHeaders(config.headers);
+    headers.set('Authorization', `Bearer ${token}`);
+    config.headers = headers;
   }
   return config;
 };
@@ -192,8 +196,9 @@ const setupInterceptors = (instance: AxiosInstance): void => {
           return Promise.reject(normalizeError(error));
         }
 
-        originalRequest.headers = originalRequest.headers ?? {};
-        originalRequest.headers.Authorization = `Bearer ${tokens.accessToken}`;
+        const headers = ensureAxiosHeaders(originalRequest.headers);
+        headers.set('Authorization', `Bearer ${tokens.accessToken}`);
+        originalRequest.headers = headers;
         return instance(originalRequest as AxiosRequestConfig);
       } catch (refreshError) {
         return Promise.reject(normalizeError(refreshError));

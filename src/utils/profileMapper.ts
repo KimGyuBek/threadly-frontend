@@ -23,14 +23,14 @@ export const toProfile = (payload: unknown): UserProfile => {
 export const toMyProfile = (payload: unknown): MyProfile => {
   const data = unwrapThreadlyResponse<Record<string, unknown>>(payload);
   return {
-    userId: (data['userId'] ?? '').toString(),
-    nickname: (data['nickname'] ?? '').toString(),
-    statusMessage: (data['statusMessage'] ?? '') as string,
+    userId: (data['userId'] ?? data['user_id'] ?? '').toString(),
+    nickname: (data['nickname'] ?? data['nickName'] ?? '').toString(),
+    statusMessage: (data['statusMessage'] ?? data['status_message'] ?? '') as string,
     bio: (data['bio'] ?? '') as string,
     phone: (data['phone'] ?? '') as string,
-    genderType: (data['genderType'] ?? data['gender'] ?? '') as string,
-    profileImageUrl: (data['profileImageUrl'] ?? undefined) as string | undefined,
-    isPrivate: Boolean(data['isPrivate'] ?? false),
+    genderType: (data['genderType'] ?? data['gender_type'] ?? data['gender'] ?? '') as string,
+    profileImageUrl: (data['profileImageUrl'] ?? data['profile_image_url'] ?? undefined) as string | undefined,
+    isPrivate: Boolean(data['isPrivate'] ?? data['is_private'] ?? false),
     followerCount: Number(data['followerCount'] ?? data['follower_count'] ?? 0),
     followingCount: Number(data['followingCount'] ?? data['following_count'] ?? 0),
   };

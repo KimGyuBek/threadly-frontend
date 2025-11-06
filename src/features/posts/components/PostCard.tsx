@@ -12,9 +12,10 @@ import { buildErrorMessage } from '@/utils/errorMessage';
 interface Props {
   post: FeedPost;
   disableNavigation?: boolean;
+  allowAuthorNavigation?: boolean;
 }
 
-export const PostCard = ({ post, disableNavigation }: Props) => {
+export const PostCard = ({ post, disableNavigation, allowAuthorNavigation = false }: Props) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [liked, setLiked] = useState(post.isLiked);
@@ -51,11 +52,14 @@ export const PostCard = ({ post, disableNavigation }: Props) => {
     },
   });
 
+  const isPostNavigable = !disableNavigation;
+  const isAuthorNavigable = !disableNavigation || allowAuthorNavigation;
+
   const handleAuthorClick = (event: React.MouseEvent) => {
-    event.stopPropagation();
-    if (disableNavigation) {
+    if (!isAuthorNavigable) {
       return;
     }
+    event.stopPropagation();
     const targetUserId = post.author.userId || post.userId;
     if (!targetUserId) {
       return;
@@ -64,7 +68,7 @@ export const PostCard = ({ post, disableNavigation }: Props) => {
   };
 
   const handlePostClick = () => {
-    if (disableNavigation) {
+    if (!isPostNavigable) {
       return;
     }
     navigate(`/posts/${post.postId}`);
@@ -80,16 +84,16 @@ export const PostCard = ({ post, disableNavigation }: Props) => {
 
   return (
     <article
-      className={`post-card ${disableNavigation ? '' : 'post-card--clickable'}`}
+      className={`post-card ${isPostNavigable ? 'post-card--clickable' : ''}`}
       onClick={handlePostClick}
-      role={disableNavigation ? undefined : 'button'}
-      tabIndex={disableNavigation ? undefined : 0}
+      role={isPostNavigable ? 'button' : undefined}
+      tabIndex={isPostNavigable ? 0 : undefined}
     >
       <header
-        className={`post-card__header ${disableNavigation ? '' : 'post-card__header--clickable'}`}
+        className={`post-card__header ${isAuthorNavigable ? 'post-card__header--clickable' : ''}`}
         onClick={handleAuthorClick}
-        role={disableNavigation ? undefined : 'button'}
-        tabIndex={disableNavigation ? undefined : 0}
+        role={isAuthorNavigable ? 'button' : undefined}
+        tabIndex={isAuthorNavigable ? 0 : undefined}
       >
         <div className="post-card__avatar">
           {post.author.profileImageUrl ? (

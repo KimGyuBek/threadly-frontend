@@ -1,6 +1,12 @@
 import { threadlyApi } from '@/api/http';
-import type { FeedResponse, CreatePostPayload, FeedPost } from '../types';
-import { toFeedResponse, toFeedPost } from '@/utils/postMapper';
+import type {
+  FeedResponse,
+  CreatePostPayload,
+  FeedPost,
+  PostCommentsPage,
+} from '../types';
+import { toFeedResponse, toFeedPost, toPostCommentsPage } from '@/utils/postMapper';
+import type { AxiosRequestConfig } from 'axios';
 
 interface FeedParams {
   cursorTimestamp?: string;
@@ -36,6 +42,28 @@ export const createPost = async (payload: CreatePostPayload): Promise<void> => {
 export const fetchPostDetail = async (postId: string): Promise<FeedPost> => {
   const response = await threadlyApi.get(`/api/posts/${postId}`);
   return toFeedPost(response.data?.data ?? response.data);
+};
+
+interface PostCommentsParams {
+  cursorTimestamp?: string;
+  cursorId?: string;
+  limit?: number;
+}
+
+export const fetchPostComments = async (
+  postId: string,
+  params: PostCommentsParams = {},
+): Promise<PostCommentsPage> => {
+  const response = await threadlyApi.get(`/api/posts/${postId}/comments`, {
+    params: {
+      ...(params.cursorTimestamp ? { cursor_timestamp: params.cursorTimestamp } : {}),
+      ...(params.cursorId ? { cursor_id: params.cursorId } : {}),
+      limit: params.limit ?? 10,
+    },
+    skipAuthRetry: true,
+  } as AxiosRequestConfig & { skipAuthRetry: boolean });
+
+  return toPostCommentsPage(response.data);
 };
 
 export const likePost = async (postId: string): Promise<void> => {
