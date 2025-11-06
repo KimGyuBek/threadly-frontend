@@ -1,21 +1,29 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 
 import { searchPosts } from '@/features/posts/api/postsApi';
 import type { FeedPost, FeedResponse } from '@/features/posts/types';
 import { PostCard } from '@/features/posts/components/PostCard';
 import { buildErrorMessage } from '@/utils/errorMessage';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 const SearchPage = () => {
   const [keyword, setKeyword] = useState('');
   const [results, setResults] = useState<FeedPost[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
+  const debouncedKeyword = useDebouncedValue(keyword, 400);
+  const lastRequestedRef = useRef('');
 
-  const searchMutation = useMutation({
-    mutationFn: () => searchPosts(keyword.trim()),
+  const searchMutation = useMutation<FeedResponse, unknown, string>({
+    mutationFn: (term) => searchPosts(term),
+    onMutate: (term) => {
+      if (!term) {
+        return;
+      }
+      setHasSearched(true);
+    },
     onSuccess: (data: FeedResponse) => {
       setResults(data.content ?? []);
-      setHasSearched(true);
     },
     onError: (error: unknown) => {
       setHasSearched(true);
@@ -25,12 +33,40 @@ const SearchPage = () => {
     },
   });
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!keyword.trim()) {
+  const { mutate, reset, isPending } = searchMutation;
+
+  useEffect(() => {
+    const term = debouncedKeyword.trim();
+    if (!term) {
+      if (lastRequestedRef.current) {
+        lastRequestedRef.current = '';
+      }
+      setResults([]);
+      setHasSearched(false);
+      reset();
       return;
     }
-    searchMutation.mutate();
+    if (term === lastRequestedRef.current) {
+      return;
+    }
+    lastRequestedRef.current = term;
+    mutate(term);
+  }, [debouncedKeyword, mutate, reset]);
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const trimmed = keyword.trim();
+    if (!trimmed) {
+      setKeyword('');
+      setResults([]);
+      setHasSearched(false);
+      lastRequestedRef.current = '';
+      reset();
+      return;
+    }
+    lastRequestedRef.current = trimmed;
+    setKeyword(trimmed);
+    mutate(trimmed);
   };
 
   return (
@@ -43,14 +79,10 @@ const SearchPage = () => {
           onChange={(event) => setKeyword(event.target.value)}
           placeholder="게시글 내용을 검색하세요"
           className="search-input"
-          disabled={searchMutation.isPending}
         />
-        <button type="submit" className="btn" disabled={searchMutation.isPending}>
-          {searchMutation.isPending ? '검색 중...' : '검색'}
-        </button>
       </form>
 
-      {searchMutation.isPending ? (
+      {isPending ? (
         <div className="feed-placeholder">검색 중...</div>
       ) : hasSearched && results.length === 0 ? (
         <div className="feed-placeholder">검색 결과가 없습니다.</div>
