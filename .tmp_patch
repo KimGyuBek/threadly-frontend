@@ -1,0 +1,47 @@
+*** Begin Patch
+*** Update File: src/pages/SearchPage.tsx
+@@
+-      <div className="search-tabs" role="tablist" aria-label="검색 유형">
+-        <button
+-          type="button"
+-          role="tab"
+-          aria-selected={isUsersTab}
+-          className={`search-tab ${isUsersTab ? 'search-tab--active' : ''}`}
+-          onClick={() => handleTabChange('users')}
+-        >
+-          계정
+-        </button>
+-        <button
+-          type="button"
+-          role="tab"
+-          aria-selected={!isUsersTab}
+-          className={`search-tab ${!isUsersTab ? 'search-tab--active' : ''}`}
+-          onClick={() => handleTabChange('posts')}
+-        >
+-          게시글
+-        </button>
+-      </div>
++      <div className="search-tabs-wrapper">
++        <div className="search-tabs" role="tablist" aria-label="검색 유형">
++          <button
++            type="button"
++            role="tab"
++            aria-selected={isUsersTab}
++            className={`search-tab ${isUsersTab ? 'search-tab--active' : ''}`}
++            onClick={() => handleTabChange('users')}
++          >
++            계정
++          </button>
++          <button
++            type="button"
++            role="tab"
++            aria-selected={!isUsersTab}
++            className={`search-tab ${!isUsersTab ? 'search-tab--active' : ''}`}
++            onClick={() => handleTabChange('posts')}
++          >
++            게시글
++          </button>
++        </div>
++      </div>
+*** End Patch
+*** End Patch
