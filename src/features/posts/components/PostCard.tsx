@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Heart, MessageSquare, Eye } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -8,8 +8,7 @@ import type { FeedPost } from '../types';
 import { formatRelativeTime } from '@/utils/date';
 import { likePost, unlikePost } from '@/features/posts/api/postsApi';
 import { buildErrorMessage } from '@/utils/errorMessage';
-import { fetchUserProfile } from '@/features/profile/api/profileApi';
-import { useFollowActions } from '@/hooks/useFollowActions';
+import { FollowButton } from '@/features/profile/components/FollowButton';
 
 interface Props {
   post: FeedPost;
@@ -118,8 +117,17 @@ export const PostCard = ({ post, disableNavigation, allowAuthorNavigation = fals
             </div>
           </div>
           {shouldShowFollowButton && authorId ? (
-            <div className="post-card__follow-wrapper" onClick={(event) => event.stopPropagation()}>
-              <AuthorFollowButton authorId={authorId} postId={post.postId} />
+            <div className="post-card__follow-wrapper">
+              <FollowButton
+                userId={authorId}
+                fetchStatus
+                invalidateKeys={[
+                  { queryKey: ['user', authorId] },
+                  { queryKey: ['feed'] },
+                  { queryKey: ['post', post.postId] },
+                ]}
+                className="post-card__follow-btn"
+              />
             </div>
           ) : null}
         </div>
@@ -152,54 +160,5 @@ export const PostCard = ({ post, disableNavigation, allowAuthorNavigation = fals
         </div>
       </footer>
     </article>
-  );
-};
-
-interface AuthorFollowButtonProps {
-  authorId: string;
-  postId?: string;
-}
-
-const AuthorFollowButton = ({ authorId, postId }: AuthorFollowButtonProps) => {
-  const authorProfileQuery = useQuery({
-    queryKey: ['user', authorId],
-    queryFn: () => fetchUserProfile(authorId),
-    enabled: Boolean(authorId),
-    staleTime: 60_000,
-  });
-
-  const followStatus = authorProfileQuery.data?.followStatus ?? 'NONE';
-
-  const followActions = useFollowActions({
-    userId: authorId,
-    followStatus,
-    invalidateKeys: [
-      { queryKey: ['user', authorId] },
-      { queryKey: ['feed'] },
-      ...(postId ? [{ queryKey: ['post', postId] }] : []),
-    ],
-  });
-
-  const label = followActions.buttonLabel;
-
-  if (!label) {
-    return null;
-  }
-
-  const buttonClass =
-    followActions.followStatus === 'APPROVED' ? 'btn btn--secondary' : 'btn btn--primary';
-
-  return (
-    <button
-      type="button"
-      className={`${buttonClass} post-card__follow-btn`}
-      onClick={(event) => {
-        event.stopPropagation();
-        followActions.toggleFollow();
-      }}
-      disabled={followActions.isProcessing}
-    >
-      {followActions.isProcessing ? '처리 중...' : label}
-    </button>
   );
 };

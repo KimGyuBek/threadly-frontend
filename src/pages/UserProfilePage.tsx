@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -9,8 +9,8 @@ import {
 } from '@/features/profile/api/profileApi';
 import FollowListModal from '@/features/profile/components/FollowListModal';
 import type { FollowListType } from '@/features/profile/components/FollowListModal';
+import { FollowButton } from '@/features/profile/components/FollowButton';
 import { buildErrorMessage } from '@/utils/errorMessage';
-import { useFollowActions } from '@/hooks/useFollowActions';
 import { useAuthStore } from '@/store/authStore';
 import { isAxiosError } from 'axios';
 import { isThreadlyApiError } from '@/utils/threadlyError';
@@ -66,23 +66,17 @@ const UserProfilePage = () => {
   const followingCount = followStats?.followingCount ?? profile?.followingCount ?? 0;
   const [activeList, setActiveList] = useState<FollowListType | null>(null);
 
-  const followActions = useFollowActions({
-    userId: profile?.user.userId ?? '',
-    followStatus: profile?.followStatus ?? 'NONE',
-    invalidateKeys: [
-      { queryKey: ['user', userId] },
-      { queryKey: ['feed'] },
-      ...(targetUserId
-        ? [
-            { queryKey: ['followStats', targetUserId] },
-            { queryKey: ['follow-list', 'followers', targetUserId] },
-            { queryKey: ['follow-list', 'followings', targetUserId] },
-          ]
-        : []),
-    ],
-  });
-
-  const followLabel = useMemo(() => followActions.buttonLabel, [followActions.buttonLabel]);
+  const followInvalidateKeys = [
+    { queryKey: ['user', userId] },
+    { queryKey: ['feed'] },
+    ...(targetUserId
+      ? [
+          { queryKey: ['followStats', targetUserId] },
+          { queryKey: ['follow-list', 'followers', targetUserId] },
+          { queryKey: ['follow-list', 'followings', targetUserId] },
+        ]
+      : []),
+  ];
 
   const openList = (listType: FollowListType) => setActiveList(listType);
   const closeList = () => setActiveList(null);
@@ -132,16 +126,11 @@ const UserProfilePage = () => {
             </button>
           </div>
         </div>
-        {followLabel ? (
-          <button
-            type="button"
-            className={`btn ${followActions.followStatus === 'APPROVED' ? 'btn--secondary' : 'btn--primary'}`}
-            onClick={followActions.toggleFollow}
-            disabled={followActions.isProcessing}
-          >
-            {followActions.isProcessing ? '처리 중...' : followLabel}
-          </button>
-        ) : null}
+        <FollowButton
+          userId={profile.user.userId}
+          followStatus={profile.followStatus ?? 'NONE'}
+          invalidateKeys={followInvalidateKeys}
+        />
       </div>
 
       <div className="profile-section">
