@@ -8,6 +8,7 @@ import { searchUsers } from '@/features/search/api/searchApi';
 import type { SearchTab } from '@/features/search/types';
 import { UserSearchList } from '@/features/search/components/UserSearchList';
 import { buildErrorMessage } from '@/utils/errorMessage';
+import { useMyProfileQuery } from '@/hooks/useMyProfile';
 
 const SearchPage = () => {
   const [keyword, setKeyword] = useState('');
@@ -15,6 +16,9 @@ const SearchPage = () => {
   const debouncedKeyword = useDebouncedValue(keyword, 400);
   const trimmedKeyword = debouncedKeyword.trim();
   const hasKeyword = trimmedKeyword.length > 0;
+
+  const myProfileQuery = useMyProfileQuery();
+  const viewerUserId = myProfileQuery.data?.userId;
 
   const userSearchQuery = useQuery({
     queryKey: ['search', 'users', trimmedKeyword],
@@ -76,7 +80,7 @@ const SearchPage = () => {
     return (
       <div className="feed-list">
         {postResults.map((post) => (
-          <PostCard key={post.postId} post={post} />
+          <PostCard key={post.postId} post={post} viewerUserId={viewerUserId} />
         ))}
       </div>
     );

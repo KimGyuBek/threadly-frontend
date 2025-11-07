@@ -9,6 +9,7 @@ import { PostCard } from '@/features/posts/components/PostCard';
 import { buildErrorMessage } from '@/utils/errorMessage';
 import { formatRelativeTime } from '@/utils/date';
 import { isThreadlyApiError } from '@/utils/threadlyError';
+import { useMyProfileQuery } from '@/hooks/useMyProfile';
 
 const COMMENTS_PAGE_SIZE = 10;
 
@@ -30,6 +31,9 @@ const PostDetailPage = () => {
   });
 
   const commentCount = detailQuery.data?.commentCount ?? 0;
+
+  const myProfileQuery = useMyProfileQuery();
+  const viewerUserId = myProfileQuery.data?.userId;
 
   const commentsQuery = useInfiniteQuery({
     queryKey: ['post', postId, 'comments'],
@@ -96,7 +100,12 @@ const PostDetailPage = () => {
         뒤로가기
       </button>
       <div className="feed-list">
-        <PostCard post={detailQuery.data} disableNavigation allowAuthorNavigation />
+        <PostCard
+          post={detailQuery.data}
+          disableNavigation
+          allowAuthorNavigation
+          viewerUserId={viewerUserId}
+        />
       </div>
 
       {commentCount > 0 ? (

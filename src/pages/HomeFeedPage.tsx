@@ -11,6 +11,7 @@ import { buildErrorMessage } from '@/utils/errorMessage';
 import { isThreadlyApiError } from '@/utils/threadlyError';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { useMyProfileQuery } from '@/hooks/useMyProfile';
 
 const FEED_QUERY_KEY = ['feed'];
 
@@ -46,6 +47,9 @@ const HomeFeedPage = () => {
     }
     return feedQuery.data.pages.flatMap((page) => page.content ?? []);
   }, [feedQuery.data]);
+
+  const myProfileQuery = useMyProfileQuery();
+  const viewerUserId = myProfileQuery.data?.userId;
 
   useEffect(() => {
     if (feedQuery.isError) {
@@ -92,7 +96,11 @@ const HomeFeedPage = () => {
       ) : (
         <div className="feed-list">
           {posts.map((post) => (
-            <PostCard key={`${post.postId}-${post.postedAt ?? ''}`} post={post} />
+            <PostCard
+              key={`${post.postId}-${post.postedAt ?? ''}`}
+              post={post}
+              viewerUserId={viewerUserId}
+            />
           ))}
         </div>
       )}

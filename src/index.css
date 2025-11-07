@@ -684,11 +684,36 @@ a {
 .post-card__header {
   display: flex;
   gap: 0.85rem;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .post-card__header--clickable {
   cursor: pointer;
+}
+
+.post-card__author-cluster {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.post-card__author-info {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.post-card__author-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.post-card__author-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .post-card__avatar {
@@ -713,8 +738,22 @@ a {
   font-weight: 600;
 }
 
+.post-card__username {
+  font-size: 0.85rem;
+  color: rgba(248, 249, 251, 0.55);
+}
+
 .post-card__time {
   color: rgba(248, 249, 251, 0.55);
+  font-size: 0.85rem;
+}
+
+.post-card__follow-wrapper {
+  flex-shrink: 0;
+}
+
+.post-card__follow-btn {
+  padding: 0.25rem 0.9rem;
   font-size: 0.85rem;
 }
 

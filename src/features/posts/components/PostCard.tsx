@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Heart, MessageSquare, Eye } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -8,14 +8,17 @@ import type { FeedPost } from '../types';
 import { formatRelativeTime } from '@/utils/date';
 import { likePost, unlikePost } from '@/features/posts/api/postsApi';
 import { buildErrorMessage } from '@/utils/errorMessage';
+import { fetchUserProfile } from '@/features/profile/api/profileApi';
+import { useFollowActions } from '@/hooks/useFollowActions';
 
 interface Props {
   post: FeedPost;
   disableNavigation?: boolean;
   allowAuthorNavigation?: boolean;
+  viewerUserId?: string;
 }
 
-export const PostCard = ({ post, disableNavigation, allowAuthorNavigation = false }: Props) => {
+export const PostCard = ({ post, disableNavigation, allowAuthorNavigation = false, viewerUserId }: Props) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [liked, setLiked] = useState(post.isLiked);
@@ -54,6 +57,8 @@ export const PostCard = ({ post, disableNavigation, allowAuthorNavigation = fals
 
   const isPostNavigable = !disableNavigation;
   const isAuthorNavigable = !disableNavigation || allowAuthorNavigation;
+  const authorId = post.author.userId || post.userId;
+  const shouldShowFollowButton = Boolean(viewerUserId && authorId && viewerUserId !== authorId);
 
   const handleAuthorClick = (event: React.MouseEvent) => {
     if (!isAuthorNavigable) {
@@ -95,16 +100,28 @@ export const PostCard = ({ post, disableNavigation, allowAuthorNavigation = fals
         role={isAuthorNavigable ? 'button' : undefined}
         tabIndex={isAuthorNavigable ? 0 : undefined}
       >
-        <div className="post-card__avatar">
-          {post.author.profileImageUrl ? (
-            <img src={post.author.profileImageUrl} alt={post.author.nickname} loading="lazy" />
-          ) : (
-            <span>{post.author.nickname?.charAt(0) ?? '?'}</span>
-          )}
-        </div>
-        <div>
-          <div className="post-card__author">{post.author.nickname}</div>
-          <div className="post-card__time">{formatRelativeTime(post.postedAt)}</div>
+        <div className="post-card__author-cluster">
+          <div className="post-card__author-info">
+            <div className="post-card__avatar">
+              {post.author.profileImageUrl ? (
+                <img src={post.author.profileImageUrl} alt={post.author.nickname} loading="lazy" />
+              ) : (
+                <span>{post.author.nickname?.charAt(0) ?? '?'}</span>
+              )}
+            </div>
+            <div className="post-card__author-meta">
+              <div className="post-card__author-row">
+                <span className="post-card__author">{post.author.nickname}</span>
+                {authorId ? <span className="post-card__username">@{authorId}</span> : null}
+              </div>
+              <div className="post-card__time">{formatRelativeTime(post.postedAt)}</div>
+            </div>
+          </div>
+          {shouldShowFollowButton && authorId ? (
+            <div className="post-card__follow-wrapper" onClick={(event) => event.stopPropagation()}>
+              <AuthorFollowButton authorId={authorId} postId={post.postId} />
+            </div>
+          ) : null}
         </div>
       </header>
       <p className="post-card__content">{post.content}</p>
@@ -135,5 +152,54 @@ export const PostCard = ({ post, disableNavigation, allowAuthorNavigation = fals
         </div>
       </footer>
     </article>
+  );
+};
+
+interface AuthorFollowButtonProps {
+  authorId: string;
+  postId?: string;
+}
+
+const AuthorFollowButton = ({ authorId, postId }: AuthorFollowButtonProps) => {
+  const authorProfileQuery = useQuery({
+    queryKey: ['user', authorId],
+    queryFn: () => fetchUserProfile(authorId),
+    enabled: Boolean(authorId),
+    staleTime: 60_000,
+  });
+
+  const followStatus = authorProfileQuery.data?.followStatus ?? 'NONE';
+
+  const followActions = useFollowActions({
+    userId: authorId,
+    followStatus,
+    invalidateKeys: [
+      { queryKey: ['user', authorId] },
+      { queryKey: ['feed'] },
+      ...(postId ? [{ queryKey: ['post', postId] }] : []),
+    ],
+  });
+
+  const label = followActions.buttonLabel;
+
+  if (!label) {
+    return null;
+  }
+
+  const buttonClass =
+    followActions.followStatus === 'APPROVED' ? 'btn btn--secondary' : 'btn btn--primary';
+
+  return (
+    <button
+      type="button"
+      className={`${buttonClass} post-card__follow-btn`}
+      onClick={(event) => {
+        event.stopPropagation();
+        followActions.toggleFollow();
+      }}
+      disabled={followActions.isProcessing}
+    >
+      {followActions.isProcessing ? '처리 중...' : label}
+    </button>
   );
 };
