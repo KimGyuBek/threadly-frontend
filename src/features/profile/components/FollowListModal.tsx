@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { fetchFollowersList, fetchFollowingsList } from '@/features/profile/api/profileApi';
 import type { FollowListResult, FollowListUser } from '@/features/profile/types';
+import { FollowButton } from '@/features/profile/components/FollowButton';
 import { useAuthStore } from '@/store/authStore';
 
 export type FollowListType = 'followers' | 'followings';
@@ -159,44 +160,53 @@ const FollowListModal = ({ userId, type, isOpen, onClose }: FollowListModalProps
             <ul className="follow-list-items">
               {users.map((user) => {
                 const since = formatSince(user.since);
+                const isSelf = user.userId === userId;
                 return (
-                  <li
-                    key={user.userId}
-                    className="follow-list-item"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => {
-                      onClose();
-                      if (user.userId === userId) {
-                        navigate('/profile');
-                      } else {
-                        navigate(`/users/${user.userId}`);
-                      }
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
+                  <li key={user.userId} className="follow-list-item">
+                    <button
+                      type="button"
+                      className="follow-list-main"
+                      onClick={() => {
                         onClose();
-                        if (user.userId === userId) {
+                        if (isSelf) {
                           navigate('/profile');
                         } else {
                           navigate(`/users/${user.userId}`);
                         }
-                      }
-                    }}
-                  >
-                    <div className="follow-list-avatar">
-                      {user.profileImageUrl ? (
-                        <img src={user.profileImageUrl} alt={user.nickname || user.userId} />
-                      ) : (
-                        <span>{user.nickname?.charAt(0) ?? user.userId.charAt(0)}</span>
-                      )}
-                    </div>
-                    <div className="follow-list-info">
-                      <span className="follow-list-name">{user.nickname || user.userId}</span>
-                      <span className="follow-list-username">@{user.userId}</span>
-                      {since ? <span className="follow-list-date">{since}</span> : null}
-                    </div>
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          onClose();
+                          if (isSelf) {
+                            navigate('/profile');
+                          } else {
+                            navigate(`/users/${user.userId}`);
+                          }
+                        }
+                      }}
+                    >
+                      <div className="follow-list-avatar">
+                        {user.profileImageUrl ? (
+                          <img src={user.profileImageUrl} alt={user.nickname || user.userId} />
+                        ) : (
+                          <span>{user.nickname?.charAt(0) ?? user.userId.charAt(0)}</span>
+                        )}
+                      </div>
+                      <div className="follow-list-info">
+                        <span className="follow-list-name">{user.nickname || user.userId}</span>
+                        <span className="follow-list-username">@{user.userId}</span>
+                        {since ? <span className="follow-list-date">{since}</span> : null}
+                      </div>
+                    </button>
+                    {!isSelf ? (
+                      <FollowButton
+                        userId={user.userId}
+                        fetchStatus
+                        invalidateKeys={[{ queryKey }, { queryKey: ['followStats', user.userId] }]}
+                        className="follow-list-follow-btn"
+                      />
+                    ) : null}
                   </li>
                 );
               })}

@@ -1177,10 +1177,21 @@ a {
   display: flex;
   gap: 0.75rem;
   align-items: center;
-  cursor: pointer;
 }
 
-.follow-list-item:focus-visible {
+.follow-list-main {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+}
+
+.follow-list-main:focus-visible {
   outline: 2px solid rgba(109, 149, 255, 0.45);
   border-radius: 14px;
   outline-offset: 4px;
@@ -1222,6 +1233,10 @@ a {
 .follow-list-date {
   font-size: 0.8rem;
   color: rgba(248, 249, 251, 0.45);
+}
+
+.follow-list-follow-btn {
+  flex-shrink: 0;
 }
 
 .follow-list-placeholder,
