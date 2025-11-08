@@ -33,6 +33,7 @@ export const toMyProfile = (payload: unknown): MyProfile => {
     profileImageUrl: normalizeProfileImageUrl(
       (data['profileImageUrl'] ?? data['profile_image_url'] ?? undefined) as string | undefined,
     ),
+    profileImageId: (data['profileImageId'] ?? data['profile_image_id'] ?? null) as string | null,
     isPrivate: Boolean(data['isPrivate'] ?? data['is_private'] ?? false),
     followerCount: Number(data['followerCount'] ?? data['follower_count'] ?? 0),
     followingCount: Number(data['followingCount'] ?? data['following_count'] ?? 0),

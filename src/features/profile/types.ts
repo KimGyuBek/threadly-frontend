@@ -47,6 +47,7 @@ export interface MyProfile {
   phone?: string;
   genderType?: string;
   profileImageUrl?: string;
+  profileImageId?: string | null;
   isPrivate?: boolean;
   followerCount?: number;
   followingCount?: number;

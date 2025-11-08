@@ -9,6 +9,7 @@ import { logError, logRequest, logResponse } from '@/utils/httpLogger';
 import { ThreadlyApiError, isThreadlyApiError } from '@/utils/threadlyError';
 
 const RETRY_FLAG = Symbol('retry');
+const FATAL_AUTH_ERROR_CODES = new Set(['TLY2006', 'TOKEN_INVALID', 'AUTHENTICATION_ERROR']);
 
 const refreshClient = axios.create({ baseURL: appConfig.apiBaseUrl });
 
@@ -185,6 +186,12 @@ const setupInterceptors = (instance: AxiosInstance): void => {
           (error.response.status === 403 && responseData?.code === 'TOKEN_EXPIRED'));
 
       if (!shouldRetry) {
+        const isFatalAuthError =
+          error.response?.status === 401 &&
+          (responseData?.code ? FATAL_AUTH_ERROR_CODES.has(responseData.code) : true);
+        if (isFatalAuthError) {
+          useAuthStore.getState().clearTokens();
+        }
         return Promise.reject(normalizeError(error));
       }
 

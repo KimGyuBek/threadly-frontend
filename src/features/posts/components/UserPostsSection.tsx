@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef } from 'react';
+import type { InfiniteData } from '@tanstack/react-query';
 import { useInfiniteQuery } from '@tanstack/react-query';
 
 import { fetchUserPosts } from '@/features/posts/api/postsApi';
@@ -32,7 +33,7 @@ export const UserPostsSection = ({
   const userPostsQuery = useInfiniteQuery<
     FeedResponse,
     Error,
-    FeedResponse,
+    InfiniteData<FeedResponse, Cursor | undefined>,
     typeof queryKey,
     Cursor | undefined
   >({
@@ -61,7 +62,18 @@ export const UserPostsSection = ({
     if (!userPostsQuery.data) {
       return [];
     }
-    return userPostsQuery.data.pages.flatMap((page) => page.content ?? []);
+    const seen = new Set<string>();
+    const uniquePosts: FeedPost[] = [];
+    userPostsQuery.data.pages.forEach((page) => {
+      page.content?.forEach((post) => {
+        const key = post.postId;
+        if (!seen.has(key)) {
+          seen.add(key);
+          uniquePosts.push(post);
+        }
+      });
+    });
+    return uniquePosts;
   }, [userPostsQuery.data]);
 
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
@@ -111,7 +123,7 @@ export const UserPostsSection = ({
         <div className="feed-list">
           {posts.map((post) => (
             <PostCard
-              key={`${post.postId}-${post.postedAt ?? ''}`}
+              key={post.postId}
               post={post}
               viewerUserId={viewerUserId}
               invalidateKeys={[{ queryKey }, { queryKey: ['feed'] }]}

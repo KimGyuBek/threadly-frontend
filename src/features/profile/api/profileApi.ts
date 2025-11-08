@@ -23,13 +23,33 @@ export interface RegisterProfilePayload {
   profileImageUrl?: string;
 }
 
+export interface UpdateProfilePayload {
+  nickname: string;
+  statusMessage?: string;
+  bio?: string;
+  phone?: string;
+  profileImageId?: string | null;
+}
+
+export interface UploadedProfileImage {
+  userProfileImageId: string;
+  imageUrl: string;
+}
+
 export const fetchMyProfile = async (): Promise<MyProfile> => {
   const response = await threadlyApi.get('/api/me/profile');
   return toMyProfile(response.data);
 };
 
 export const registerProfile = async (payload: RegisterProfilePayload): Promise<AuthTokens> => {
-  const response = await threadlyApi.post('/api/me/profile', payload);
+  const response = await threadlyApi.post('/api/me/profile', {
+    nickname: payload.nickname,
+    status_message: payload.statusMessage ?? '',
+    bio: payload.bio ?? '',
+    phone: payload.phone ?? '',
+    gender: payload.gender,
+    profile_image_url: payload.profileImageUrl ?? undefined,
+  });
   const data = unwrapThreadlyResponse<AuthTokens | { accessToken?: string; refreshToken?: string }>(
     response.data,
   );
@@ -45,6 +65,45 @@ export const registerProfile = async (payload: RegisterProfilePayload): Promise<
     throw new Error('프로필 설정 토큰 응답이 올바르지 않습니다.');
   }
   return { accessToken, refreshToken };
+};
+
+export const updateProfile = async (payload: UpdateProfilePayload): Promise<void> => {
+  const requestBody: Record<string, unknown> = {
+    nickname: payload.nickname,
+    status_message: payload.statusMessage ?? '',
+    bio: payload.bio ?? '',
+    phone: payload.phone ?? '',
+  };
+
+  if (payload.profileImageId !== undefined) {
+    requestBody['profile_image_id'] = payload.profileImageId;
+  }
+
+  await threadlyApi.patch('/api/me/profile', requestBody);
+};
+
+export const uploadProfileImage = async (file: File): Promise<UploadedProfileImage> => {
+  const formData = new FormData();
+  formData.append('image', file);
+
+  const response = await threadlyApi.post('/api/me/profile/image', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+
+  const data = unwrapThreadlyResponse<Record<string, unknown>>(response.data);
+  const userProfileImageId = (data['userProfileImageId'] ?? data['user_profile_image_id'] ?? '').toString();
+  const imageUrl = (data['imageUrl'] ?? data['image_url'] ?? '').toString();
+
+  if (!userProfileImageId) {
+    throw new Error('프로필 이미지 업로드 응답에 ID가 없습니다.');
+  }
+
+  return {
+    userProfileImageId,
+    imageUrl,
+  };
 };
 
 export const fetchUserProfile = async (userId: string): Promise<UserProfile> => {

@@ -45,7 +45,18 @@ const HomeFeedPage = () => {
     if (!feedQuery.data) {
       return [];
     }
-    return feedQuery.data.pages.flatMap((page) => page.content ?? []);
+    const seen = new Set<string>();
+    const uniquePosts: FeedPost[] = [];
+    feedQuery.data.pages.forEach((page) => {
+      page.content?.forEach((post) => {
+        const key = post.postId;
+        if (!seen.has(key)) {
+          seen.add(key);
+          uniquePosts.push(post);
+        }
+      });
+    });
+    return uniquePosts;
   }, [feedQuery.data]);
 
   const myProfileQuery = useMyProfileQuery();
@@ -97,7 +108,7 @@ const HomeFeedPage = () => {
         <div className="feed-list">
           {posts.map((post) => (
             <PostCard
-              key={`${post.postId}-${post.postedAt ?? ''}`}
+              key={post.postId}
               post={post}
               viewerUserId={viewerUserId}
               invalidateKeys={[{ queryKey: FEED_QUERY_KEY }]}

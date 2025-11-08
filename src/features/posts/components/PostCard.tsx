@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { QueryKey } from '@tanstack/react-query';
 import { Heart, MessageSquare, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -19,7 +20,7 @@ interface Props {
   disableNavigation?: boolean;
   allowAuthorNavigation?: boolean;
   viewerUserId?: string;
-  invalidateKeys?: { queryKey: unknown[] }[];
+  invalidateKeys?: { queryKey: QueryKey }[];
 }
 
 export const PostCard = ({
@@ -78,7 +79,7 @@ export const PostCard = ({
         { queryKey: ['post', post.postId] },
         { queryKey: ['feed'] },
       ];
-      const dedup = new Map<string, unknown[]>();
+      const dedup = new Map<string, QueryKey>();
       [...defaultInvalidate, ...invalidateKeys].forEach((entry) => {
         const key = entry?.queryKey;
         if (!key) {

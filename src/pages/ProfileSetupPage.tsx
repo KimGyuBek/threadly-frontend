@@ -1,12 +1,20 @@
-import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { isAxiosError } from 'axios';
 import { toast } from 'react-toastify';
 
-import { registerProfile } from '@/features/profile/api/profileApi';
-import type { RegisterProfilePayload } from '@/features/profile/api/profileApi';
+import {
+  fetchMyProfile,
+  registerProfile,
+  updateProfile,
+  uploadProfileImage,
+  type RegisterProfilePayload,
+} from '@/features/profile/api/profileApi';
 import { useAuthStore } from '@/store/authStore';
 import { buildErrorMessage } from '@/utils/errorMessage';
+import { isThreadlyApiError } from '@/utils/threadlyError';
+import { getProfileImageUrl, normalizeProfileImageUrl } from '@/utils/profileImage';
 
 const genders = [
   { value: 'MALE', label: '남성' },
@@ -14,20 +22,93 @@ const genders = [
   { value: 'OTHER', label: '기타' },
 ];
 
+type ProfileMode = 'register' | 'update';
+
+type ProfileFormState = Omit<RegisterProfilePayload, 'profileImageUrl'>;
+
+interface ProfileImageState {
+  imageId: string | null;
+  imageUrl?: string;
+}
+
+const isProfileSetupRequiredError = (error: unknown): boolean => {
+  if (isThreadlyApiError(error)) {
+    return (
+      error.code === 'USER_PROFILE_NOT_SET' ||
+      error.code === 'USER_PROFILE_NOT_EXISTS' ||
+      error.code === 'USER_PROFILE_NOT_FOUND' ||
+      error.status === 404
+    );
+  }
+  if (isAxiosError(error)) {
+    const payload = error.response?.data as { code?: string } | undefined;
+    return error.response?.status === 404 || payload?.code === 'USER_PROFILE_NOT_SET';
+  }
+  return false;
+};
+
 const ProfileSetupPage = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const setTokens = useAuthStore((state) => state.setTokens);
-  const [form, setForm] = useState<RegisterProfilePayload>({
+
+  const [mode, setMode] = useState<ProfileMode>('register');
+  const [prefilled, setPrefilled] = useState(false);
+  const [form, setForm] = useState<ProfileFormState>({
     nickname: '',
     statusMessage: '',
     bio: '',
     phone: '',
     gender: 'OTHER',
-    profileImageUrl: '',
+  });
+  const [profileImage, setProfileImage] = useState<ProfileImageState>({
+    imageId: null,
+    imageUrl: undefined,
   });
 
-  const mutation = useMutation({
-    mutationFn: () => registerProfile(form),
+  const profileQuery = useQuery({
+    queryKey: ['me', 'profile', 'setup'],
+    queryFn: fetchMyProfile,
+    retry: false,
+  });
+
+  useEffect(() => {
+    if (prefilled) {
+      return;
+    }
+    if (profileQuery.isSuccess) {
+      const profile = profileQuery.data;
+      setMode('update');
+      setForm({
+        nickname: profile.nickname ?? '',
+        statusMessage: profile.statusMessage ?? '',
+        bio: profile.bio ?? '',
+        phone: profile.phone ?? '',
+        gender: profile.genderType || 'OTHER',
+      });
+      setProfileImage({
+        imageId: profile.profileImageId ?? null,
+        imageUrl: profile.profileImageUrl ?? undefined,
+      });
+      setPrefilled(true);
+      return;
+    }
+    if (profileQuery.isError && isProfileSetupRequiredError(profileQuery.error)) {
+      setMode('register');
+      setPrefilled(true);
+    }
+  }, [prefilled, profileQuery.data, profileQuery.error, profileQuery.isError, profileQuery.isSuccess]);
+
+  const registerMutation = useMutation({
+    mutationFn: () =>
+      registerProfile({
+        nickname: form.nickname.trim(),
+        statusMessage: form.statusMessage ?? '',
+        bio: form.bio ?? '',
+        phone: form.phone ?? '',
+        gender: form.gender,
+        profileImageUrl: profileImage.imageUrl,
+      }),
     onSuccess: (tokens) => {
       setTokens(tokens);
       toast.success('프로필이 설정되었습니다.');
@@ -38,11 +119,64 @@ const ProfileSetupPage = () => {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: () =>
+      updateProfile({
+        nickname: form.nickname.trim(),
+        statusMessage: form.statusMessage ?? '',
+        bio: form.bio ?? '',
+        phone: form.phone ?? '',
+        profileImageId: profileImage.imageId ?? null,
+      }),
+    onSuccess: () => {
+      toast.success('프로필을 저장했습니다.');
+      queryClient.invalidateQueries({ queryKey: ['me', 'profile'] });
+      navigate('/profile', { replace: true });
+    },
+    onError: (error: unknown) => {
+      toast.error(buildErrorMessage(error, '프로필 수정에 실패했습니다.'));
+    },
+  });
+
+  const uploadMutation = useMutation({
+    mutationFn: uploadProfileImage,
+    onSuccess: (uploaded) => {
+      setProfileImage({
+        imageId: uploaded.userProfileImageId,
+        imageUrl: normalizeProfileImageUrl(uploaded.imageUrl),
+      });
+      toast.success('프로필 이미지를 업로드했습니다.');
+    },
+    onError: (error: unknown) => {
+      toast.error(buildErrorMessage(error, '프로필 이미지 업로드에 실패했습니다.'));
+    },
+  });
+
+  const inFlight = registerMutation.isPending || updateMutation.isPending || uploadMutation.isPending;
+
   const handleChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     const { name, value } = event.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files ? Array.from(event.target.files) : [];
+    event.target.value = '';
+    if (files.length === 0) {
+      return;
+    }
+    try {
+      await uploadMutation.mutateAsync(files[0]);
+    } catch {
+      // toast handled in onError
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setProfileImage({ imageId: null, imageUrl: undefined });
+    toast.info('프로필 이미지를 제거했습니다.');
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -51,16 +185,77 @@ const ProfileSetupPage = () => {
       toast.error('닉네임을 입력하세요.');
       return;
     }
-    mutation.mutate();
+    if (uploadMutation.isPending) {
+      toast.info('이미지 업로드가 완료될 때까지 기다려 주세요.');
+      return;
+    }
+    if (mode === 'register') {
+      registerMutation.mutate();
+    } else {
+      updateMutation.mutate();
+    }
   };
+
+  const isLoadingProfile = profileQuery.isPending && !prefilled;
+  const allowRegisterWithoutProfile =
+    profileQuery.isError && isProfileSetupRequiredError(profileQuery.error);
+
+  const fatalProfileError = profileQuery.isError && !allowRegisterWithoutProfile;
+
+  const imagePreview = useMemo(() => getProfileImageUrl(profileImage.imageUrl), [profileImage.imageUrl]);
+
+  if (isLoadingProfile) {
+    return <div className="profile-setup-container">프로필 정보를 불러오는 중...</div>;
+  }
+
+  if (fatalProfileError) {
+    return (
+      <div className="feed-placeholder feed-placeholder--error">
+        <p>{buildErrorMessage(profileQuery.error, '프로필 정보를 불러오지 못했습니다.')}</p>
+        <button type="button" className="btn" onClick={() => profileQuery.refetch()}>
+          다시 시도
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="profile-setup-container">
-      <h2 className="section-title">프로필 설정</h2>
+      <h2 className="section-title">{mode === 'register' ? '프로필 설정' : '프로필 수정'}</h2>
       <p className="profile-setup-description">
-        처음 오셨군요! 다른 사용자에게 보여질 프로필 정보를 입력해주세요.
+        {mode === 'register'
+          ? '다른 사용자에게 보여질 정보를 입력하고 첫 프로필을 완성하세요.'
+          : '닉네임과 소개, 연락처, 프로필 이미지를 수정할 수 있습니다.'}
       </p>
       <form className="profile-setup-form" onSubmit={handleSubmit}>
+        <div className="profile-avatar" style={{ marginBottom: 16 }}>
+          <img src={imagePreview} alt="프로필 미리보기" />
+        </div>
+        <div className="compose-upload" style={{ marginBottom: 16 }}>
+          <label className="btn btn--secondary" htmlFor="profile-image-upload">
+            {uploadMutation.isPending ? '이미지 업로드 중...' : '프로필 이미지 선택'}
+          </label>
+          <input
+            id="profile-image-upload"
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            style={{ display: 'none' }}
+            disabled={uploadMutation.isPending || inFlight}
+          />
+          {(profileImage.imageUrl || profileImage.imageId) && (
+            <button
+              type="button"
+              className="btn btn--secondary"
+              style={{ marginLeft: 8 }}
+              onClick={handleRemoveImage}
+              disabled={inFlight}
+            >
+              이미지 제거
+            </button>
+          )}
+        </div>
+
         <label className="auth-label" htmlFor="nickname">
           닉네임
         </label>
@@ -72,7 +267,7 @@ const ProfileSetupPage = () => {
           onChange={handleChange}
           className="auth-input"
           placeholder="닉네임"
-          disabled={mutation.isPending}
+          disabled={inFlight}
           required
         />
 
@@ -87,7 +282,7 @@ const ProfileSetupPage = () => {
           onChange={handleChange}
           className="auth-input"
           placeholder="한 줄 소개"
-          disabled={mutation.isPending}
+          disabled={inFlight}
         />
 
         <label className="auth-label" htmlFor="bio">
@@ -101,7 +296,7 @@ const ProfileSetupPage = () => {
           className="compose-textarea"
           placeholder="자기소개를 작성하세요"
           rows={6}
-          disabled={mutation.isPending}
+          disabled={inFlight}
         />
 
         <label className="auth-label" htmlFor="phone">
@@ -115,7 +310,7 @@ const ProfileSetupPage = () => {
           onChange={handleChange}
           className="auth-input"
           placeholder="010-0000-0000"
-          disabled={mutation.isPending}
+          disabled={inFlight}
         />
 
         <label className="auth-label" htmlFor="gender">
@@ -127,7 +322,7 @@ const ProfileSetupPage = () => {
           value={form.gender}
           onChange={handleChange}
           className="auth-input"
-          disabled={mutation.isPending}
+          disabled={inFlight || mode === 'update'}
         >
           {genders.map((gender) => (
             <option key={gender.value} value={gender.value}>
@@ -135,23 +330,20 @@ const ProfileSetupPage = () => {
             </option>
           ))}
         </select>
+        {mode === 'update' ? (
+          <p className="profile-setup-description" style={{ marginTop: 4 }}>
+            최초 설정 이후에는 성별을 변경할 수 없습니다.
+          </p>
+        ) : null}
 
-        <label className="auth-label" htmlFor="profileImageUrl">
-          프로필 이미지 URL
-        </label>
-        <input
-          id="profileImageUrl"
-          name="profileImageUrl"
-          type="text"
-          value={form.profileImageUrl}
-          onChange={handleChange}
-          className="auth-input"
-          placeholder="https://..."
-          disabled={mutation.isPending}
-        />
-
-        <button type="submit" className="auth-submit" disabled={mutation.isPending}>
-          {mutation.isPending ? '저장 중...' : '프로필 저장'}
+        <button type="submit" className="auth-submit" disabled={inFlight}>
+          {mode === 'register'
+            ? registerMutation.isPending
+              ? '저장 중...'
+              : '프로필 저장'
+            : updateMutation.isPending
+              ? '저장 중...'
+              : '변경 내용 저장'}
         </button>
       </form>
     </div>
