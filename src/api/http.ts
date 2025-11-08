@@ -55,7 +55,7 @@ const refreshTokens = async (): Promise<AuthTokens | null> => {
   refreshPromise = refreshClient
     .post('/api/auth/reissue', undefined, {
       headers: {
-        'X-refresh-token': refreshToken,
+        'X-refresh-token': `Bearer ${refreshToken}`,
       },
     })
     .then((response) => {
