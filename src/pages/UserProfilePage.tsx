@@ -10,6 +10,7 @@ import {
 import FollowListModal from '@/features/profile/components/FollowListModal';
 import type { FollowListType } from '@/features/profile/components/FollowListModal';
 import { FollowButton } from '@/features/profile/components/FollowButton';
+import { UserPostsSection } from '@/features/posts/components/UserPostsSection';
 import { buildErrorMessage } from '@/utils/errorMessage';
 import { useAuthStore } from '@/store/authStore';
 import { isAxiosError } from 'axios';
@@ -135,6 +136,8 @@ const UserProfilePage = () => {
         <h3>소개</h3>
         <p>{profile.bio || '자기소개가 없습니다.'}</p>
       </div>
+
+      <UserPostsSection userId={profile.user.userId} />
 
       <FollowListModal
         userId={profile.user.userId}

@@ -28,6 +28,20 @@ export const fetchFeed = async (params: FeedParams = {}): Promise<FeedResponse> 
   return toFeedResponse(response.data);
 };
 
+export const fetchUserPosts = async (
+  userId: string,
+  params: FeedParams = {},
+): Promise<FeedResponse> => {
+  const response = await threadlyApi.get(`/api/users/${userId}/posts`, {
+    params: {
+      limit: params.limit ?? 10,
+      ...(params.cursorTimestamp ? { cursor_timestamp: params.cursorTimestamp } : {}),
+      ...(params.cursorId ? { cursor_id: params.cursorId } : {}),
+    },
+  });
+  return toFeedResponse(response.data);
+};
+
 export const searchPosts = async (query: string): Promise<FeedResponse> => {
   const response = await threadlyApi.get('/api/posts/search', {
     params: {

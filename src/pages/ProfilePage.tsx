@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import { fetchMyProfile, fetchUserFollowStats } from '@/features/profile/api/profileApi';
 import FollowListModal from '@/features/profile/components/FollowListModal';
 import type { FollowListType } from '@/features/profile/components/FollowListModal';
+import { UserPostsSection } from '@/features/posts/components/UserPostsSection';
 import { buildErrorMessage } from '@/utils/errorMessage';
 import { isAxiosError } from 'axios';
 import { isThreadlyApiError } from '@/utils/threadlyError';
@@ -133,6 +134,8 @@ const ProfilePage = () => {
         <h3>소개</h3>
         <p>{profile.bio || '자기소개가 없습니다.'}</p>
       </div>
+
+      <UserPostsSection userId={profile.userId} viewerUserId={profile.userId} />
 
       <div className="profile-section">
         <h3>세부 정보</h3>
