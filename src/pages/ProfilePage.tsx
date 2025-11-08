@@ -137,24 +137,6 @@ const ProfilePage = () => {
 
       <UserPostsSection userId={profile.userId} viewerUserId={profile.userId} />
 
-      <div className="profile-section">
-        <h3>세부 정보</h3>
-        <ul className="profile-details">
-          <li>
-            <span>연락처</span>
-            <span>{profile.phone || '-'}</span>
-          </li>
-          <li>
-            <span>성별</span>
-            <span>{profile.genderType || '-'}</span>
-          </li>
-          <li>
-            <span>공개 여부</span>
-            <span>{profile.isPrivate ? '비공개' : '공개'}</span>
-          </li>
-        </ul>
-      </div>
-
       <FollowListModal
         userId={profile.userId}
         type={activeList ?? 'followers'}

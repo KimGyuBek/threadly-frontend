@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Heart, MessageSquare, Eye } from 'lucide-react';
+import { Heart, MessageSquare, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 import type { FeedPost } from '../types';
@@ -10,6 +10,9 @@ import { fetchPostEngagement, likePost, unlikePost } from '@/features/posts/api/
 import { buildErrorMessage } from '@/utils/errorMessage';
 import { FollowButton } from '@/features/profile/components/FollowButton';
 import { getProfileImageUrl } from '@/utils/profileImage';
+
+const TARGET_IMAGE_ASPECT_RATIO = 3 / 4;
+const IMAGE_RATIO_TOLERANCE = 0.05;
 
 interface Props {
   post: FeedPost;
@@ -30,11 +33,30 @@ export const PostCard = ({
   const queryClient = useQueryClient();
   const [liked, setLiked] = useState(post.liked);
   const [likeCount, setLikeCount] = useState(post.likeCount);
+  const [imageFitMap, setImageFitMap] = useState<Record<string, 'cover' | 'letterbox'>>({});
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showIndicators, setShowIndicators] = useState(false);
+  const indicatorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setLiked(post.liked);
     setLikeCount(post.likeCount);
-  }, [post.postId, post.liked, post.likeCount]);
+    setImageFitMap({});
+    setCurrentImageIndex(0);
+    setShowIndicators(false);
+    if (indicatorTimeoutRef.current) {
+      clearTimeout(indicatorTimeoutRef.current);
+      indicatorTimeoutRef.current = null;
+    }
+  }, [post.postId, post.liked, post.likeCount, post.images?.length]);
+
+  useEffect(() => {
+    return () => {
+      if (indicatorTimeoutRef.current) {
+        clearTimeout(indicatorTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const toggleLikeMutation = useMutation<void, unknown, boolean, { previousLiked: boolean; previousLikeCount: number }>({
     mutationFn: (nextLiked) => (nextLiked ? likePost(post.postId) : unlikePost(post.postId)),
@@ -85,6 +107,24 @@ export const PostCard = ({
   const authorId = post.author.userId || post.userId;
   const shouldShowFollowButton = Boolean(viewerUserId && authorId && viewerUserId !== authorId);
   const authorAvatarUrl = getProfileImageUrl(post.author.profileImageUrl);
+  const images = post.images ?? [];
+  const hasMultipleImages = images.length > 1;
+
+  const handleImageLoad = (imageKey: string) => (event: React.SyntheticEvent<HTMLImageElement>) => {
+    const target = event.currentTarget;
+    if (!target?.naturalWidth || !target?.naturalHeight) {
+      return;
+    }
+    const ratio = target.naturalWidth / target.naturalHeight;
+    const nextFit: 'cover' | 'letterbox' =
+      Math.abs(ratio - TARGET_IMAGE_ASPECT_RATIO) <= IMAGE_RATIO_TOLERANCE ? 'cover' : 'letterbox';
+    setImageFitMap((prev) => {
+      if (prev[imageKey] === nextFit) {
+        return prev;
+      }
+      return { ...prev, [imageKey]: nextFit };
+    });
+  };
 
   const handleAuthorClick = (event: React.MouseEvent) => {
     if (!isAuthorNavigable) {
@@ -111,6 +151,38 @@ export const PostCard = ({
       return;
     }
     toggleLikeMutation.mutate(!liked);
+  };
+
+  const flashIndicators = () => {
+    if (!hasMultipleImages) {
+      return;
+    }
+    setShowIndicators(true);
+    if (indicatorTimeoutRef.current) {
+      clearTimeout(indicatorTimeoutRef.current);
+    }
+    indicatorTimeoutRef.current = setTimeout(() => {
+      setShowIndicators(false);
+      indicatorTimeoutRef.current = null;
+    }, 1500);
+  };
+
+  const handlePrevImage = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (!images.length) {
+      return;
+    }
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+    flashIndicators();
+  };
+
+  const handleNextImage = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (!images.length) {
+      return;
+    }
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
+    flashIndicators();
   };
 
   return (
@@ -156,11 +228,58 @@ export const PostCard = ({
         </div>
       </header>
       <p className="post-card__content">{post.content}</p>
-      {post.images?.length ? (
-        <div className="post-card__images">
-          {post.images.map((image) => (
-            <img key={`${image.imageId}-${image.imageOrder}`} src={image.imageUrl} alt="post" loading="lazy" />
-          ))}
+      {images.length ? (
+        <div className="post-card__carousel" onClick={(event) => event.stopPropagation()}>
+          <div
+            className="post-card__carousel-track"
+            style={{ transform: `translateX(-${currentImageIndex * 100}%)` }}
+          >
+            {images.map((image) => {
+              const imageKey = `${image.imageId}-${image.imageOrder}`;
+              const isLetterbox = imageFitMap[imageKey] === 'letterbox';
+              return (
+                <div key={imageKey} className="post-card__carousel-slide">
+                  <div
+                    className={`post-card__image-wrapper ${isLetterbox ? 'post-card__image-wrapper--letterbox' : 'post-card__image-wrapper--cover'}`}
+                  >
+                    <img src={image.imageUrl} alt="post" loading="lazy" onLoad={handleImageLoad(imageKey)} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {hasMultipleImages ? (
+            <>
+              <button
+                type="button"
+                className="post-card__carousel-control post-card__carousel-control--prev"
+                onClick={handlePrevImage}
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <button
+                type="button"
+                className="post-card__carousel-control post-card__carousel-control--next"
+                onClick={handleNextImage}
+              >
+                <ChevronRight size={20} />
+              </button>
+              <div
+                className={`post-card__carousel-indicators ${
+                  showIndicators ? 'post-card__carousel-indicators--visible' : ''
+                }`}
+              >
+                {images.map((image, index) => (
+                  <span
+                    key={`${image.imageId}-${image.imageOrder}-indicator`}
+                    className={`post-card__carousel-indicator ${
+                      index === currentImageIndex ? 'post-card__carousel-indicator--active' : ''
+                    }`}
+                  />
+                ))}
+              </div>
+            </>
+          ) : null}
         </div>
       ) : null}
       <footer className="post-card__footer" onClick={(event) => event.stopPropagation()}>

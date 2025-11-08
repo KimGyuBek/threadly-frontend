@@ -3,6 +3,7 @@ import type {
   FeedResponse,
   CreatePostPayload,
   FeedPost,
+  UploadedPostImage,
   PostCommentsPage,
   PostComment,
 } from '../types';
@@ -53,7 +54,48 @@ export const searchPosts = async (query: string): Promise<FeedResponse> => {
 };
 
 export const createPost = async (payload: CreatePostPayload): Promise<void> => {
-  await threadlyApi.post('/api/posts', payload);
+  await threadlyApi.post('/api/posts', {
+    content: payload.content,
+    images: (payload.images ?? []).map((image) => ({
+      image_id: image.imageId,
+      image_order: image.imageOrder,
+    })),
+  });
+};
+
+export const uploadPostImages = async (files: File[]): Promise<UploadedPostImage[]> => {
+  if (!files || files.length === 0) {
+    return [];
+  }
+
+  const formData = new FormData();
+  files.forEach((file) => formData.append('images', file));
+
+  const response = await threadlyApi.post('/api/post-images', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+
+  const data = unwrapThreadlyResponse<Record<string, unknown>>(response.data);
+  const rawImages = Array.isArray(data['images']) ? data['images'] : [];
+
+  return rawImages
+    .map((raw): UploadedPostImage | null => {
+      if (raw && typeof raw === 'object') {
+        const record = raw as Record<string, unknown>;
+        const imageId = record['image_id'];
+        const imageUrl = record['image_url'];
+        if (typeof imageId === 'string') {
+          return {
+            imageId,
+            imageUrl: typeof imageUrl === 'string' ? imageUrl : '',
+          };
+        }
+      }
+      return null;
+    })
+    .filter((image): image is UploadedPostImage => Boolean(image));
 };
 
 export const fetchPostDetail = async (postId: string): Promise<FeedPost> => {

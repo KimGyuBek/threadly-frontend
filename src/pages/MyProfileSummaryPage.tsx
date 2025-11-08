@@ -123,6 +123,24 @@ const MyProfileSummaryPage = () => {
         <h3>소개</h3>
         <p>{profile.bio || '자기소개가 없습니다.'}</p>
       </div>
+
+      <div className="profile-section">
+        <h3>세부 정보</h3>
+        <ul className="profile-details">
+          <li>
+            <span>연락처</span>
+            <span>{profile.phone || '-'}</span>
+          </li>
+          <li>
+            <span>성별</span>
+            <span>{profile.genderType || '-'}</span>
+          </li>
+          <li>
+            <span>공개 여부</span>
+            <span>{profile.isPrivate ? '비공개' : '공개'}</span>
+          </li>
+        </ul>
+      </div>
     </div>
   );
 };

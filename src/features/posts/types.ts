@@ -51,6 +51,17 @@ export interface FeedResponse {
   nextCursor?: PostsCursor;
 }
 
+export interface CreatePostImagePayload {
+  imageId: string;
+  imageOrder: number;
+}
+
 export interface CreatePostPayload {
   content: string;
+  images: CreatePostImagePayload[];
+}
+
+export interface UploadedPostImage {
+  imageId: string;
+  imageUrl: string;
 }

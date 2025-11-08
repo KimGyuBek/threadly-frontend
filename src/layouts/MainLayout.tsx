@@ -58,20 +58,22 @@ export const MainLayout = () => {
       </aside>
 
       <div className="app-content">
-        <header className="app-header">
-          <div className="app-header__title">
-            {navItems.find((item) => item.to === activePath)?.label ?? 'Threadly'}
-          </div>
-          <div className="app-header__actions">
-            <button type="button" className="header-notification" onClick={() => navigate('/notifications')}>
-              <Bell size={20} />
-              <span>알림</span>
-            </button>
-          </div>
-        </header>
-        <main className="app-main">
-          <Outlet />
-        </main>
+        <div className="app-center-column">
+          <header className="app-header">
+            <div className="app-header__title">
+              {navItems.find((item) => item.to === activePath)?.label ?? 'Threadly'}
+            </div>
+            <div className="app-header__actions">
+              <button type="button" className="header-notification" onClick={() => navigate('/notifications')}>
+                <Bell size={20} />
+                <span>알림</span>
+              </button>
+            </div>
+          </header>
+          <main className="app-main">
+            <Outlet />
+          </main>
+        </div>
       </div>
     </div>
   );
