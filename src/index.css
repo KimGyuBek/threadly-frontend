@@ -732,7 +732,7 @@ a {
 .feed-list {
   display: flex;
   flex-direction: column;
-  gap: 2.5rem;
+  gap: 1.25rem;
   scroll-snap-type: y proximity;
 }
 
@@ -1591,6 +1591,11 @@ a {
 
   .post-card {
     padding: 15px;
+  }
+
+  .post-card__follow-btn {
+    padding: 0.35rem 1.6rem;
+    font-size: 0.95rem;
   }
 }
 }
