@@ -21,7 +21,7 @@ export interface FeedPost {
   images: PostImage[];
   likeCount: number;
   commentCount: number;
-  isLiked: boolean;
+  liked: boolean;
 }
 
 export interface PostComment {

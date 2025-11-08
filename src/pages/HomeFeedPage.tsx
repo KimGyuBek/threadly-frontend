@@ -100,6 +100,7 @@ const HomeFeedPage = () => {
               key={`${post.postId}-${post.postedAt ?? ''}`}
               post={post}
               viewerUserId={viewerUserId}
+              invalidateKeys={[{ queryKey: FEED_QUERY_KEY }]}
             />
           ))}
         </div>

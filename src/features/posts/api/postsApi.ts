@@ -7,6 +7,7 @@ import type {
 } from '../types';
 import { toFeedResponse, toFeedPost, toPostCommentsPage } from '@/utils/postMapper';
 import type { AxiosRequestConfig } from 'axios';
+import { unwrapThreadlyResponse } from '@/utils/api';
 
 interface FeedParams {
   cursorTimestamp?: string;
@@ -44,6 +45,17 @@ export const fetchPostDetail = async (postId: string): Promise<FeedPost> => {
   return toFeedPost(response.data?.data ?? response.data);
 };
 
+export const fetchPostEngagement = async (
+  postId: string,
+): Promise<{ likeCount: number; liked: boolean }> => {
+  const response = await threadlyApi.get(`/api/posts/${postId}/engagement`);
+  const data = unwrapThreadlyResponse<Record<string, unknown>>(response.data);
+  return {
+    likeCount: Number(data['likeCount'] ?? data['like_count'] ?? 0),
+    liked: Boolean(data['liked'] ?? false),
+  };
+};
+
 interface PostCommentsParams {
   cursorTimestamp?: string;
   cursorId?: string;
@@ -64,6 +76,31 @@ export const fetchPostComments = async (
   } as AxiosRequestConfig & { skipAuthRetry: boolean });
 
   return toPostCommentsPage(response.data);
+};
+
+export interface CommentLikeResponse {
+  commentId: string;
+  likeCount: number;
+}
+
+const mapCommentLikeResponse = (payload: unknown): CommentLikeResponse => {
+  const data = unwrapThreadlyResponse<Record<string, unknown>>(payload);
+  const commentId = (data['commentId'] ?? data['comment_id'] ?? '').toString();
+  const likeCount = Number(data['likeCount'] ?? data['like_count'] ?? 0);
+  return { commentId, likeCount };
+};
+
+export const likeComment = async (postId: string, commentId: string): Promise<CommentLikeResponse> => {
+  const response = await threadlyApi.post(`/api/posts/${postId}/comments/${commentId}/likes`);
+  return mapCommentLikeResponse(response.data);
+};
+
+export const unlikeComment = async (
+  postId: string,
+  commentId: string,
+): Promise<CommentLikeResponse> => {
+  const response = await threadlyApi.delete(`/api/posts/${postId}/comments/${commentId}/likes`);
+  return mapCommentLikeResponse(response.data);
 };
 
 export const likePost = async (postId: string): Promise<void> => {

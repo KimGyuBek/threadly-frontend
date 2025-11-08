@@ -87,7 +87,7 @@ export const toFeedPost = (raw: unknown): FeedPost => {
     images: mapImages(data['images']),
     likeCount: Number(data['likeCount'] ?? data['like_count'] ?? 0),
     commentCount: Number(data['commentCount'] ?? data['comment_count'] ?? 0),
-    isLiked: Boolean(data['isLiked'] ?? data['is_liked'] ?? false),
+    liked: Boolean(data['liked'] ?? data['isLiked'] ?? data['is_liked'] ?? false),
   };
 };
 

@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 
 import type { FeedPost } from '../types';
 import { formatRelativeTime } from '@/utils/date';
-import { likePost, unlikePost } from '@/features/posts/api/postsApi';
+import { fetchPostEngagement, likePost, unlikePost } from '@/features/posts/api/postsApi';
 import { buildErrorMessage } from '@/utils/errorMessage';
 import { FollowButton } from '@/features/profile/components/FollowButton';
 
@@ -15,35 +15,60 @@ interface Props {
   disableNavigation?: boolean;
   allowAuthorNavigation?: boolean;
   viewerUserId?: string;
+  invalidateKeys?: { queryKey: unknown[] }[];
 }
 
-export const PostCard = ({ post, disableNavigation, allowAuthorNavigation = false, viewerUserId }: Props) => {
+export const PostCard = ({
+  post,
+  disableNavigation,
+  allowAuthorNavigation = false,
+  viewerUserId,
+  invalidateKeys = [],
+}: Props) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [liked, setLiked] = useState(post.isLiked);
+  const [liked, setLiked] = useState(post.liked);
   const [likeCount, setLikeCount] = useState(post.likeCount);
 
   useEffect(() => {
-    setLiked(post.isLiked);
+    setLiked(post.liked);
     setLikeCount(post.likeCount);
-  }, [post.postId, post.isLiked, post.likeCount]);
+  }, [post.postId, post.liked, post.likeCount]);
 
-  const toggleLikeMutation = useMutation<
-    void,
-    unknown,
-    boolean,
-    { previousLiked: boolean; previousLikeCount: number }
-  >({
+  const toggleLikeMutation = useMutation<void, unknown, boolean, { previousLiked: boolean; previousLikeCount: number }>({
     mutationFn: (nextLiked) => (nextLiked ? likePost(post.postId) : unlikePost(post.postId)),
     onMutate: (nextLiked) => {
       const context = { previousLiked: liked, previousLikeCount: likeCount };
       setLiked(nextLiked);
-      setLikeCount((prev) => prev + (nextLiked ? 1 : -1));
       return context;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['feed'] });
-      queryClient.invalidateQueries({ queryKey: ['post', post.postId] });
+    onSuccess: async () => {
+      try {
+        const engagement = await fetchPostEngagement(post.postId);
+        setLiked(engagement.liked);
+        setLikeCount(engagement.likeCount);
+      } catch (error) {
+        toast.error(buildErrorMessage(error, '좋아요 정보를 새로고침하지 못했습니다.'));
+      }
+
+      const defaultInvalidate = [
+        { queryKey: ['post', post.postId] },
+        { queryKey: ['feed'] },
+      ];
+      const dedup = new Map<string, unknown[]>();
+      [...defaultInvalidate, ...invalidateKeys].forEach((entry) => {
+        const key = entry?.queryKey;
+        if (!key) {
+          return;
+        }
+        const serialized = JSON.stringify(key);
+        if (!dedup.has(serialized)) {
+          dedup.set(serialized, key);
+        }
+      });
+      dedup.forEach((queryKey) => {
+        void queryClient.invalidateQueries({ queryKey });
+      });
     },
     onError: (error, _variables, context) => {
       if (context) {

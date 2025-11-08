@@ -80,7 +80,12 @@ const SearchPage = () => {
     return (
       <div className="feed-list">
         {postResults.map((post) => (
-          <PostCard key={post.postId} post={post} viewerUserId={viewerUserId} />
+          <PostCard
+            key={post.postId}
+            post={post}
+            viewerUserId={viewerUserId}
+            invalidateKeys={[{ queryKey: ['search', 'posts', trimmedKeyword] }]}
+          />
         ))}
       </div>
     );

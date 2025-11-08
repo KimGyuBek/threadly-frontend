@@ -1,15 +1,23 @@
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { isAxiosError } from 'axios';
 
-import { fetchPostDetail, fetchPostComments } from '@/features/posts/api/postsApi';
-import type { PostComment } from '@/features/posts/types';
+import {
+  fetchPostDetail,
+  fetchPostComments,
+  likeComment,
+  unlikeComment,
+  type CommentLikeResponse,
+} from '@/features/posts/api/postsApi';
+import type { PostComment, PostCommentsPage } from '@/features/posts/types';
 import { PostCard } from '@/features/posts/components/PostCard';
 import { buildErrorMessage } from '@/utils/errorMessage';
 import { formatRelativeTime } from '@/utils/date';
 import { isThreadlyApiError } from '@/utils/threadlyError';
 import { useMyProfileQuery } from '@/hooks/useMyProfile';
+import { Heart } from 'lucide-react';
 
 const COMMENTS_PAGE_SIZE = 10;
 
@@ -105,6 +113,7 @@ const PostDetailPage = () => {
           disableNavigation
           allowAuthorNavigation
           viewerUserId={viewerUserId}
+          invalidateKeys={postId ? [{ queryKey: ['post', postId] }] : []}
         />
       </div>
 
@@ -131,7 +140,11 @@ const PostDetailPage = () => {
           {comments.length > 0 ? (
             <ul className="post-comments__list">
               {comments.map((comment) => (
-                <PostCommentItem key={comment.commentId} comment={comment} />
+                <PostCommentItem
+                  key={comment.commentId}
+                  comment={comment}
+                  postId={postId ?? undefined}
+                />
               ))}
             </ul>
           ) : null}
@@ -155,13 +168,75 @@ const PostDetailPage = () => {
 
 export default PostDetailPage;
 
-const PostCommentItem = ({ comment }: { comment: PostComment }) => {
+const PostCommentItem = ({ comment, postId }: { comment: PostComment; postId?: string }) => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [liked, setLiked] = useState(comment.liked);
+  const [likeCount, setLikeCount] = useState(comment.likeCount);
+
+  useEffect(() => {
+    setLiked(comment.liked);
+    setLikeCount(comment.likeCount);
+  }, [comment.commentId, comment.liked, comment.likeCount]);
+
+  const updateCachedComment = (nextLiked: boolean, nextCount: number) => {
+    if (!postId) {
+      return;
+    }
+    queryClient.setQueryData<InfiniteData<PostCommentsPage> | undefined>(
+      ['post', postId, 'comments'],
+      (previous) => {
+        if (!previous) {
+          return previous;
+        }
+        const pages = previous.pages.map((page) => ({
+          ...page,
+          comments: page.comments.map((item) =>
+            item.commentId === comment.commentId
+              ? { ...item, likeCount: nextCount, liked: nextLiked }
+              : item,
+          ),
+        }));
+        return { ...previous, pages };
+      },
+    );
+  };
+
+  const toggleLikeMutation = useMutation<CommentLikeResponse, unknown, boolean, { previousLiked: boolean; previousLikeCount: number }>({
+    mutationFn: async (nextLiked) => {
+      if (!postId) {
+        throw new Error('postId is required for comment like');
+      }
+      return nextLiked ? likeComment(postId, comment.commentId) : unlikeComment(postId, comment.commentId);
+    },
+    onMutate: () => ({ previousLiked: liked, previousLikeCount: likeCount }),
+    onSuccess: (response, nextLiked) => {
+      setLikeCount(response.likeCount);
+      setLiked(nextLiked);
+      updateCachedComment(nextLiked, response.likeCount);
+    },
+    onError: (error, _vars, context) => {
+      if (context) {
+        setLiked(context.previousLiked);
+        setLikeCount(context.previousLikeCount);
+      }
+      toast.error(buildErrorMessage(error, '댓글 좋아요 처리에 실패했습니다.'));
+    },
+  });
+
   const handleNavigate = () => {
     if (!comment.commenter.userId) {
       return;
     }
     navigate(`/users/${comment.commenter.userId}`);
+  };
+
+  const handleToggleLike = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (!postId || toggleLikeMutation.isPending) {
+      return;
+    }
+    toggleLikeMutation.mutate(!liked);
   };
 
   return (
@@ -191,9 +266,17 @@ const PostCommentItem = ({ comment }: { comment: PostComment }) => {
           <span className="post-comment__time">{formatRelativeTime(comment.commentedAt)}</span>
         </div>
         <p className="post-comment__content">{comment.content}</p>
-        <div className="post-comment__actions">
-          <span className="post-comment__likes">좋아요 {comment.likeCount.toLocaleString()}</span>
-          {comment.liked ? <span className="post-comment__liked">• 내가 좋아요</span> : null}
+        <div className="post-comment__actions" onClick={(event) => event.stopPropagation()}>
+          <button
+            type="button"
+            className={`post-comment__like-button ${liked ? 'post-comment__like-button--active' : ''}`}
+            onClick={handleToggleLike}
+            disabled={toggleLikeMutation.isPending || !postId}
+          >
+            <Heart size={14} />
+            <span>{likeCount.toLocaleString()}</span>
+          </button>
+          {liked ? <span className="post-comment__liked">내가 좋아요</span> : null}
         </div>
       </div>
     </li>

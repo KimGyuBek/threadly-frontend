@@ -1189,6 +1189,7 @@ a {
   color: inherit;
   text-align: left;
   padding: 0;
+  cursor: pointer;
 }
 
 .follow-list-main:focus-visible {
@@ -1418,11 +1419,32 @@ a {
   gap: 0.65rem;
   font-size: 0.85rem;
   color: rgba(248, 249, 251, 0.6);
+  align-items: center;
 }
 
-.post-comment__likes {
-  font-size: 0.85rem;
-  color: rgba(248, 249, 251, 0.6);
+.post-comment__like-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: none;
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem;
+  background: rgba(118, 127, 255, 0.12);
+  color: rgba(248, 249, 251, 0.75);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.post-comment__like-button:hover:not(:disabled) {
+  background: rgba(118, 127, 255, 0.2);
+}
+
+.post-comment__like-button--active {
+  background: rgba(255, 102, 126, 0.2);
+  color: #ff93a6;
+}
+
+.post-comment__like-button:disabled {
+  opacity: 0.6;
 }
 
 .post-comment__liked {
