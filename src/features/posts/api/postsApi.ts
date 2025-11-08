@@ -4,6 +4,7 @@ import type {
   CreatePostPayload,
   FeedPost,
   PostCommentsPage,
+  PostComment,
 } from '../types';
 import { toFeedResponse, toFeedPost, toPostCommentsPage } from '@/utils/postMapper';
 import type { AxiosRequestConfig } from 'axios';
@@ -76,6 +77,29 @@ export const fetchPostComments = async (
   } as AxiosRequestConfig & { skipAuthRetry: boolean });
 
   return toPostCommentsPage(response.data);
+};
+
+export const createPostComment = async (postId: string, content: string): Promise<PostComment> => {
+  const response = await threadlyApi.post(`/api/posts/${postId}/comments`, { content });
+  const data = unwrapThreadlyResponse<Record<string, unknown>>(response.data);
+  const commentId = (data['commentId'] ?? data['comment_id'] ?? '').toString();
+  const userId = (data['userId'] ?? data['user_id'] ?? '').toString();
+  const nickname = (data['userNickname'] ?? data['user_nickname'] ?? '').toString();
+  const profileImageUrl =
+    (data['userProfileImageUrl'] ?? data['user_profile_image_url'] ?? undefined) as string | undefined;
+  return {
+    postId,
+    commentId,
+    commenter: {
+      userId,
+      nickname,
+      profileImageUrl,
+    },
+    commentedAt: data['createdAt']?.toString() ?? data['created_at']?.toString() ?? '',
+    likeCount: 0,
+    content: (data['content'] ?? '').toString(),
+    liked: false,
+  };
 };
 
 export interface CommentLikeResponse {

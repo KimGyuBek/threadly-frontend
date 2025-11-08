@@ -1333,6 +1333,43 @@ a {
   gap: 1.25rem;
 }
 
+.post-comment-form {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  border-radius: 18px;
+  background: rgba(13, 18, 28, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.post-comment-form textarea {
+  width: 100%;
+  resize: none;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(4, 7, 15, 0.85);
+  color: #f7f8fb;
+  padding: 0.85rem 1rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.post-comment-form textarea:focus {
+  outline: 2px solid rgba(110, 150, 255, 0.45);
+  border-color: transparent;
+}
+
+.post-comment-form__footer {
+  margin-top: 0.65rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.post-comment-form__counter {
+  font-size: 0.85rem;
+  color: rgba(247, 248, 251, 0.6);
+}
+
 .post-comments h3 {
   font-size: 1.1rem;
   font-weight: 600;

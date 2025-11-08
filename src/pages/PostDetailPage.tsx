@@ -9,9 +9,10 @@ import {
   fetchPostComments,
   likeComment,
   unlikeComment,
+  createPostComment,
   type CommentLikeResponse,
 } from '@/features/posts/api/postsApi';
-import type { PostComment, PostCommentsPage } from '@/features/posts/types';
+import type { FeedPost, PostComment, PostCommentsPage } from '@/features/posts/types';
 import { PostCard } from '@/features/posts/components/PostCard';
 import { buildErrorMessage } from '@/utils/errorMessage';
 import { formatRelativeTime } from '@/utils/date';
@@ -24,6 +25,8 @@ const COMMENTS_PAGE_SIZE = 10;
 const PostDetailPage = () => {
   const { postId } = useParams<{ postId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [commentContent, setCommentContent] = useState('');
 
   const detailQuery = useQuery({
     queryKey: ['post', postId],
@@ -86,6 +89,67 @@ const PostDetailPage = () => {
   const commentPages = commentsQuery.data?.pages ?? [];
   const comments = commentPages.flatMap((page) => page.comments);
   const hasUnauthorizedComments = commentPages.some((page) => page.unauthorized);
+  const trimmedCommentContent = commentContent.trim();
+  const canSubmitComment = Boolean(postId) && trimmedCommentContent.length > 0;
+
+  const appendCommentToCache = (newComment: PostComment) => {
+    if (!postId) {
+      return;
+    }
+    queryClient.setQueryData<InfiniteData<PostCommentsPage> | undefined>(
+      ['post', postId, 'comments'],
+      (previous) => {
+        if (!previous || previous.pages.length === 0) {
+          return previous;
+        }
+        const [firstPage, ...restPages] = previous.pages;
+        const updatedFirstPage = {
+          ...firstPage,
+          comments: [newComment, ...firstPage.comments].slice(0, COMMENTS_PAGE_SIZE),
+        };
+        return {
+          ...previous,
+          pages: [updatedFirstPage, ...restPages],
+        };
+      },
+    );
+  };
+
+  const createCommentMutation = useMutation<PostComment, unknown, string>({
+    mutationFn: async (content) => {
+      if (!postId) {
+        throw new Error('postId is required for creating a comment');
+      }
+      return createPostComment(postId, content);
+    },
+    onSuccess: (newComment) => {
+      setCommentContent('');
+      toast.success('댓글을 등록했습니다.');
+      if (postId) {
+        queryClient.setQueryData<FeedPost | undefined>(['post', postId], (previous) =>
+          previous
+            ? {
+                ...previous,
+                commentCount: previous.commentCount + 1,
+              }
+            : previous,
+        );
+        appendCommentToCache(newComment);
+        void queryClient.invalidateQueries({ queryKey: ['post', postId, 'comments'] });
+      }
+    },
+    onError: (error) => {
+      toast.error(buildErrorMessage(error, '댓글을 등록하지 못했습니다.'));
+    },
+  });
+
+  const handleCommentSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!canSubmitComment || createCommentMutation.isPending) {
+      return;
+    }
+    createCommentMutation.mutate(trimmedCommentContent);
+  };
 
   if (detailQuery.isLoading) {
     return <div className="feed-placeholder">게시글을 불러오는 중입니다...</div>;
@@ -116,6 +180,35 @@ const PostDetailPage = () => {
           invalidateKeys={postId ? [{ queryKey: ['post', postId] }] : []}
         />
       </div>
+
+      <section className="post-comment-form">
+        <form onSubmit={handleCommentSubmit}>
+          <label htmlFor="commentContent" className="sr-only">
+            댓글 내용
+          </label>
+          <textarea
+            id="commentContent"
+            name="commentContent"
+            value={commentContent}
+            onChange={(event) => setCommentContent(event.target.value)}
+            placeholder="더 나누고 싶은 생각을 적어보세요"
+            aria-label="댓글 내용"
+            maxLength={255}
+            rows={3}
+            disabled={!postId || createCommentMutation.isPending}
+          />
+          <div className="post-comment-form__footer">
+            <span className="post-comment-form__counter">{commentContent.length}/255</span>
+            <button
+              type="submit"
+              className="btn"
+              disabled={!canSubmitComment || createCommentMutation.isPending}
+            >
+              {createCommentMutation.isPending ? '작성 중...' : '댓글 작성'}
+            </button>
+          </div>
+        </form>
+      </section>
 
       {commentCount > 0 ? (
         <section className="post-comments">
