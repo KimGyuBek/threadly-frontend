@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { InfiniteData } from '@tanstack/react-query';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +16,7 @@ import { NotificationListItem } from '@/components/NotificationListItem';
 import { useNotificationSocket } from '@/hooks/useNotificationSocket';
 import { buildErrorMessage } from '@/utils/errorMessage';
 import type { NotificationItem, NotificationListResponse, NotificationWebSocketMessage } from '@/types/notifications';
+import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 
 const NOTIFICATION_QUERY_KEY = ['notifications'];
 
@@ -55,6 +56,17 @@ const NotificationsPage = () => {
     }
     return notificationsQuery.data.pages.flatMap((page) => page.items);
   }, [notificationsQuery.data]);
+
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const { fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = notificationsQuery;
+
+  const handleLoadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage && !isLoading) {
+      void fetchNextPage();
+    }
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage, isLoading]);
+
+  useIntersectionObserver(loadMoreRef, handleLoadMore, { rootMargin: '200px' });
 
   const updateCache = (updater: (item: NotificationItem) => NotificationItem | null) => {
     queryClient.setQueryData<NotificationsQueryData>(NOTIFICATION_QUERY_KEY, (prev) => {
@@ -234,16 +246,12 @@ const NotificationsPage = () => {
         </div>
       )}
 
-      {notificationsQuery.hasNextPage ? (
-        <div className="notifications-footer">
-          <button
-            type="button"
-            className="btn btn--secondary"
-            disabled={notificationsQuery.isFetchingNextPage}
-            onClick={() => notificationsQuery.fetchNextPage()}
-          >
-            {notificationsQuery.isFetchingNextPage ? '불러오는 중...' : '더 보기'}
-          </button>
+      {notifications.length > 0 ? (
+        <div ref={loadMoreRef} className="notifications-footer">
+          {notificationsQuery.isFetchingNextPage ? <span className="feed-loading">불러오는 중...</span> : null}
+          {!notificationsQuery.hasNextPage ? (
+            <span className="feed-end">모든 알림을 확인했습니다.</span>
+          ) : null}
         </div>
       ) : null}
     </div>

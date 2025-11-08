@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -20,6 +20,7 @@ import { isThreadlyApiError } from '@/utils/threadlyError';
 import { useMyProfileQuery } from '@/hooks/useMyProfile';
 import { Heart } from 'lucide-react';
 import { getProfileImageUrl } from '@/utils/profileImage';
+import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 
 const COMMENTS_PAGE_SIZE = 10;
 
@@ -92,6 +93,17 @@ const PostDetailPage = () => {
   const hasUnauthorizedComments = commentPages.some((page) => page.unauthorized);
   const trimmedCommentContent = commentContent.trim();
   const canSubmitComment = Boolean(postId) && trimmedCommentContent.length > 0;
+
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const { fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = commentsQuery;
+
+  const handleLoadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage && !isLoading) {
+      void fetchNextPage();
+    }
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage, isLoading]);
+
+  useIntersectionObserver(loadMoreRef, handleLoadMore, { rootMargin: '200px' });
 
   const appendCommentToCache = (newComment: PostComment) => {
     if (!postId) {
@@ -242,16 +254,10 @@ const PostDetailPage = () => {
               ))}
             </ul>
           ) : null}
-          {commentsQuery.hasNextPage && !commentsQuery.isLoading ? (
-            <div className="post-comments__footer">
-              <button
-                type="button"
-                className="btn btn--secondary"
-                onClick={() => commentsQuery.fetchNextPage()}
-                disabled={commentsQuery.isFetchingNextPage}
-              >
-                {commentsQuery.isFetchingNextPage ? '불러오는 중...' : '더 보기'}
-              </button>
+          {!commentsQuery.isLoading && !hasUnauthorizedComments && (comments.length > 0 || hasNextPage) ? (
+            <div ref={loadMoreRef} className="post-comments__sentinel">
+              {isFetchingNextPage ? <span>불러오는 중...</span> : null}
+              {!hasNextPage && comments.length > 0 ? <span>모든 댓글을 확인했습니다.</span> : null}
             </div>
           ) : null}
         </section>

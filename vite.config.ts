@@ -11,4 +11,11 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
     },
   },
+  test: {
+    environment: 'node',
+    globals: true,
+    alias: {
+      '@': resolve(__dirname, 'src'),
+    },
+  },
 })

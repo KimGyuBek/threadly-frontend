@@ -569,6 +569,11 @@ a {
   gap: 1.5rem;
   background: var(--color-surface);
   backdrop-filter: none;
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .app-logo {
@@ -1345,6 +1350,10 @@ a {
     justify-content: space-between;
     border-right: none;
     border-bottom: 1px solid var(--color-border-strong);
+    height: auto;
+    position: sticky;
+    top: 0;
+    overflow: hidden;
   }
 
   .app-nav {

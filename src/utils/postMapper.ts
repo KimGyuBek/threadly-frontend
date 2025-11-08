@@ -9,6 +9,7 @@ import type {
 } from '@/features/posts/types';
 import { unwrapThreadlyResponse } from './api';
 import { normalizeProfileImageUrl } from './profileImage';
+import { extractCursor, hasMoreFromCursor } from './cursor';
 
 const mapAuthor = (raw: unknown, fallbackUserId?: string): PostAuthor => {
   if (raw && typeof raw === 'object') {
@@ -98,18 +99,16 @@ export const toFeedResponse = (payload: unknown): FeedResponse => {
     payload,
   );
   const content = Array.isArray(data.content) ? data.content.map(toFeedPost) : [];
-  let nextCursor: PostsCursor | undefined;
-  if (data.nextCursor && typeof data.nextCursor === 'object') {
-    const cursor = data.nextCursor as Record<string, unknown>;
-    const timestamp = cursor['timestamp']?.toString();
-    const id = cursor['id']?.toString();
-    if (timestamp && id) {
-      nextCursor = { timestamp, id };
-    }
-  }
+  const rawNextCursor = (data.nextCursor ?? (data as Record<string, unknown>)['next_cursor']) as
+    | Record<string, unknown>
+    | undefined;
+  const normalizedCursor = extractCursor(rawNextCursor);
+  const nextCursor: PostsCursor | undefined = normalizedCursor ?? undefined;
+  const hasNext =
+    typeof data.hasNext === 'boolean' ? data.hasNext : hasMoreFromCursor(normalizedCursor);
   return {
     content,
-    hasNext: Boolean(data.hasNext),
+    hasNext,
     nextCursor,
   };
 };

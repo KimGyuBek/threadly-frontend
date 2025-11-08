@@ -9,6 +9,7 @@ import type {
 
 import { unwrapThreadlyResponse } from './api';
 import { normalizeProfileImageUrl } from './profileImage';
+import { extractCursor, hasMoreFromCursor } from './cursor';
 
 const normalizeType = (value: unknown): NotificationType => {
   switch ((value ?? '').toString().toUpperCase()) {
@@ -140,19 +141,17 @@ export const toNotificationListResponse = (payload: unknown): NotificationListRe
   const items = Array.isArray(data?.items) ? data.items : [];
   const mappedItems = items.map((item) => toNotificationItem(item));
 
-  let nextCursor = undefined;
-  if (data?.nextCursor && typeof data.nextCursor === 'object') {
-    const cursor = data.nextCursor as Record<string, unknown>;
-    const timestamp = cursor['timestamp']?.toString();
-    const id = cursor['id']?.toString();
-    if (timestamp && id) {
-      nextCursor = { timestamp, id };
-    }
-  }
+  const rawNextCursor = (data?.nextCursor ?? (data as Record<string, unknown>)['next_cursor']) as
+    | Record<string, unknown>
+    | undefined;
+  const normalizedCursor = extractCursor(rawNextCursor);
+  const nextCursor = normalizedCursor ?? null;
+  const hasNext =
+    typeof data?.hasNext === 'boolean' ? Boolean(data?.hasNext) : hasMoreFromCursor(normalizedCursor);
 
   return {
     items: mappedItems,
-    hasNext: Boolean(data?.hasNext),
-    nextCursor: nextCursor ?? null,
+    hasNext,
+    nextCursor,
   };
 };
