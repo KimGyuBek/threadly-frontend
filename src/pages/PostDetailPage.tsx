@@ -19,6 +19,7 @@ import { formatRelativeTime } from '@/utils/date';
 import { isThreadlyApiError } from '@/utils/threadlyError';
 import { useMyProfileQuery } from '@/hooks/useMyProfile';
 import { Heart } from 'lucide-react';
+import { getProfileImageUrl } from '@/utils/profileImage';
 
 const COMMENTS_PAGE_SIZE = 10;
 
@@ -266,6 +267,7 @@ const PostCommentItem = ({ comment, postId }: { comment: PostComment; postId?: s
   const queryClient = useQueryClient();
   const [liked, setLiked] = useState(comment.liked);
   const [likeCount, setLikeCount] = useState(comment.likeCount);
+  const commenterAvatarUrl = getProfileImageUrl(comment.commenter.profileImageUrl);
 
   useEffect(() => {
     setLiked(comment.liked);
@@ -346,11 +348,7 @@ const PostCommentItem = ({ comment, postId }: { comment: PostComment; postId?: s
       }}
     >
       <div className="post-comment__avatar">
-        {comment.commenter.profileImageUrl ? (
-          <img src={comment.commenter.profileImageUrl} alt={comment.commenter.nickname} loading="lazy" />
-        ) : (
-          <span>{comment.commenter.nickname?.charAt(0) ?? '?'}</span>
-        )}
+        <img src={commenterAvatarUrl} alt={comment.commenter.nickname} loading="lazy" />
       </div>
       <div className="post-comment__body">
         <div className="post-comment__meta">

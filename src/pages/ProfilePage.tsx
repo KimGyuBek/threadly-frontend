@@ -9,6 +9,7 @@ import type { FollowListType } from '@/features/profile/components/FollowListMod
 import { buildErrorMessage } from '@/utils/errorMessage';
 import { isAxiosError } from 'axios';
 import { isThreadlyApiError } from '@/utils/threadlyError';
+import { getProfileImageUrl } from '@/utils/profileImage';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -92,6 +93,7 @@ const ProfilePage = () => {
 
   const displayName = profile.nickname;
   const initial = displayName?.charAt(0) ?? profile.userId.charAt(0);
+  const avatarUrl = getProfileImageUrl(profile.profileImageUrl);
 
   return (
     <div className="profile-container">
@@ -100,11 +102,7 @@ const ProfilePage = () => {
       </button>
       <div className="profile-header">
         <div className="profile-avatar">
-          {profile.profileImageUrl ? (
-            <img src={profile.profileImageUrl} alt={displayName} />
-          ) : (
-            <span>{initial}</span>
-          )}
+          <img src={avatarUrl} alt={displayName ?? initial} />
         </div>
         <div>
           <h2>{displayName}</h2>

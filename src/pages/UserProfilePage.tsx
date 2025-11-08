@@ -14,6 +14,7 @@ import { buildErrorMessage } from '@/utils/errorMessage';
 import { useAuthStore } from '@/store/authStore';
 import { isAxiosError } from 'axios';
 import { isThreadlyApiError } from '@/utils/threadlyError';
+import { getProfileImageUrl } from '@/utils/profileImage';
 
 const UserProfilePage = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -97,6 +98,7 @@ const UserProfilePage = () => {
   }
 
   const initial = profile.user.nickname?.charAt(0) ?? profile.user.userId.charAt(0);
+  const avatarUrl = getProfileImageUrl(profile.user.profileImageUrl);
 
   return (
     <div className="profile-container">
@@ -105,11 +107,7 @@ const UserProfilePage = () => {
       </button>
       <div className="profile-header">
         <div className="profile-avatar">
-          {profile.user.profileImageUrl ? (
-            <img src={profile.user.profileImageUrl} alt={profile.user.nickname} />
-          ) : (
-            <span>{initial}</span>
-          )}
+          <img src={avatarUrl} alt={profile.user.nickname ?? initial} />
         </div>
         <div>
           <h2>{profile.user.nickname}</h2>

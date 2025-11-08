@@ -2,6 +2,7 @@ import type { NotificationItem } from '@/types/notifications';
 import { buildNotificationText } from '@/utils/notificationMessage';
 import { formatRelativeTime } from '@/utils/date';
 import clsx from 'clsx';
+import { getProfileImageUrl } from '@/utils/profileImage';
 
 interface Props {
   notification: NotificationItem;
@@ -13,6 +14,7 @@ interface Props {
 export const NotificationListItem = ({ notification, onOpen, onMarkRead, onDelete }: Props) => {
   const { title, description } = buildNotificationText(notification);
   const timestamp = formatRelativeTime(notification.occurredAt);
+  const actorAvatarUrl = getProfileImageUrl(notification.actorProfile.profileImageUrl);
 
   return (
     <div
@@ -27,13 +29,7 @@ export const NotificationListItem = ({ notification, onOpen, onMarkRead, onDelet
       }}
     >
       <div className="notification-item__avatar">
-        {notification.actorProfile.profileImageUrl ? (
-          <img src={notification.actorProfile.profileImageUrl} alt="avatar" loading="lazy" />
-        ) : (
-          <span className="notification-item__avatar-placeholder">
-            {notification.actorProfile.nickname?.charAt(0) ?? '?'}
-          </span>
-        )}
+        <img src={actorAvatarUrl} alt="avatar" loading="lazy" />
       </div>
       <div className="notification-item__content">
         <div className="notification-item__header">

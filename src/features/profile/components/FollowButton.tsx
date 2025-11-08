@@ -59,6 +59,7 @@ export const FollowButton = ({
 
   const buttonClassName = clsx(
     'btn',
+    'follow-button',
     resolvedAppearance === 'secondary' ? 'btn--secondary' : 'btn--primary',
     className,
   );

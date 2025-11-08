@@ -12,6 +12,7 @@ import type {
 import type { AuthTokens } from '@/types/auth';
 import { toProfile, toMyProfile } from '@/utils/profileMapper';
 import { unwrapThreadlyResponse } from '@/utils/api';
+import { normalizeProfileImageUrl } from '@/utils/profileImage';
 
 export interface RegisterProfilePayload {
   nickname: string;
@@ -85,9 +86,9 @@ const mapFollowListUser = (payload: Record<string, unknown> | undefined): Follow
   return {
     userId,
     nickname: (payload['nickname'] ?? '').toString(),
-    profileImageUrl: (payload['profileImageUrl'] ?? payload['profile_image_url'] ?? undefined) as
-      | string
-      | undefined,
+    profileImageUrl: normalizeProfileImageUrl(
+      (payload['profileImageUrl'] ?? payload['profile_image_url'] ?? undefined) as string | undefined,
+    ),
   };
 };
 

@@ -7,6 +7,7 @@ import { fetchFollowersList, fetchFollowingsList } from '@/features/profile/api/
 import type { FollowListResult, FollowListUser } from '@/features/profile/types';
 import { FollowButton } from '@/features/profile/components/FollowButton';
 import { useAuthStore } from '@/store/authStore';
+import { getProfileImageUrl } from '@/utils/profileImage';
 
 export type FollowListType = 'followers' | 'followings';
 
@@ -161,6 +162,7 @@ const FollowListModal = ({ userId, type, isOpen, onClose }: FollowListModalProps
               {users.map((user) => {
                 const since = formatSince(user.since);
                 const isSelf = user.userId === userId;
+                const avatarUrl = getProfileImageUrl(user.profileImageUrl);
                 return (
                   <li key={user.userId} className="follow-list-item">
                     <button
@@ -187,11 +189,7 @@ const FollowListModal = ({ userId, type, isOpen, onClose }: FollowListModalProps
                       }}
                     >
                       <div className="follow-list-avatar">
-                        {user.profileImageUrl ? (
-                          <img src={user.profileImageUrl} alt={user.nickname || user.userId} />
-                        ) : (
-                          <span>{user.nickname?.charAt(0) ?? user.userId.charAt(0)}</span>
-                        )}
+                        <img src={avatarUrl} alt={user.nickname || user.userId} />
                       </div>
                       <div className="follow-list-info">
                         <span className="follow-list-name">{user.nickname || user.userId}</span>

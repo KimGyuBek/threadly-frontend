@@ -7,6 +7,7 @@ import { fetchMyProfile, fetchUserFollowStats } from '@/features/profile/api/pro
 import { buildErrorMessage } from '@/utils/errorMessage';
 import { isAxiosError } from 'axios';
 import { isThreadlyApiError } from '@/utils/threadlyError';
+import { getProfileImageUrl } from '@/utils/profileImage';
 
 const MyProfileSummaryPage = () => {
   const navigate = useNavigate();
@@ -84,16 +85,13 @@ const MyProfileSummaryPage = () => {
   }
 
   const initial = profile.nickname?.charAt(0) ?? profile.userId.charAt(0);
+  const avatarUrl = getProfileImageUrl(profile.profileImageUrl);
 
   return (
     <div className="profile-container">
       <div className="profile-header">
         <div className="profile-avatar">
-          {profile.profileImageUrl ? (
-            <img src={profile.profileImageUrl} alt={profile.nickname} />
-          ) : (
-            <span>{initial}</span>
-          )}
+          <img src={avatarUrl} alt={profile.nickname ?? initial} />
         </div>
         <div>
           <h2>{profile.nickname}</h2>

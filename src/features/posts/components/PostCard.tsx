@@ -9,6 +9,7 @@ import { formatRelativeTime } from '@/utils/date';
 import { fetchPostEngagement, likePost, unlikePost } from '@/features/posts/api/postsApi';
 import { buildErrorMessage } from '@/utils/errorMessage';
 import { FollowButton } from '@/features/profile/components/FollowButton';
+import { getProfileImageUrl } from '@/utils/profileImage';
 
 interface Props {
   post: FeedPost;
@@ -83,6 +84,7 @@ export const PostCard = ({
   const isAuthorNavigable = !disableNavigation || allowAuthorNavigation;
   const authorId = post.author.userId || post.userId;
   const shouldShowFollowButton = Boolean(viewerUserId && authorId && viewerUserId !== authorId);
+  const authorAvatarUrl = getProfileImageUrl(post.author.profileImageUrl);
 
   const handleAuthorClick = (event: React.MouseEvent) => {
     if (!isAuthorNavigable) {
@@ -127,11 +129,7 @@ export const PostCard = ({
         <div className="post-card__author-cluster">
           <div className="post-card__author-info">
             <div className="post-card__avatar">
-              {post.author.profileImageUrl ? (
-                <img src={post.author.profileImageUrl} alt={post.author.nickname} loading="lazy" />
-              ) : (
-                <span>{post.author.nickname?.charAt(0) ?? '?'}</span>
-              )}
+              <img src={authorAvatarUrl} alt={post.author.nickname} loading="lazy" />
             </div>
             <div className="post-card__author-meta">
               <div className="post-card__author-row">

@@ -2,6 +2,7 @@ import { threadlyApi } from '@/api/http';
 import { unwrapThreadlyResponse } from '@/utils/api';
 import type { UserSearchResult, SearchUser } from '../types';
 import type { FollowStatus } from '@/features/profile/types';
+import { normalizeProfileImageUrl } from '@/utils/profileImage';
 
 const mapSearchUser = (payload: unknown): SearchUser => {
   if (!payload || typeof payload !== 'object') {
@@ -13,9 +14,9 @@ const mapSearchUser = (payload: unknown): SearchUser => {
   return {
     userId: (userRaw['userId'] ?? userRaw['user_id'] ?? '').toString(),
     nickname: (userRaw['nickname'] ?? userRaw['nickName'] ?? '').toString(),
-    profileImageUrl: (userRaw['profileImageUrl'] ?? userRaw['profile_image_url'] ?? undefined) as
-      | string
-      | undefined,
+    profileImageUrl: normalizeProfileImageUrl(
+      (userRaw['profileImageUrl'] ?? userRaw['profile_image_url'] ?? undefined) as string | undefined,
+    ),
     followStatus,
   };
 };

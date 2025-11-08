@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 
 import type { SearchUser } from '../types';
+import { getProfileImageUrl } from '@/utils/profileImage';
 
 interface UserSearchListProps {
   users: SearchUser[];
@@ -24,6 +25,7 @@ export const UserSearchList = ({ users }: UserSearchListProps) => {
   return (
     <ul className="search-user-list">
       {users.map((user) => {
+        const avatarUrl = getProfileImageUrl(user.profileImageUrl);
         const statusLabel = FOLLOW_STATUS_LABEL[user.followStatus];
         return (
           <li key={user.userId}>
@@ -39,11 +41,7 @@ export const UserSearchList = ({ users }: UserSearchListProps) => {
               }}
             >
               <div className="search-user-avatar">
-                {user.profileImageUrl ? (
-                  <img src={user.profileImageUrl} alt={user.nickname || user.userId} />
-                ) : (
-                  <span>{user.nickname?.charAt(0) ?? user.userId.charAt(0)}</span>
-                )}
+                <img src={avatarUrl} alt={user.nickname || user.userId} />
               </div>
               <div className="search-user-info">
                 <span className="search-user-name">{user.nickname || user.userId}</span>

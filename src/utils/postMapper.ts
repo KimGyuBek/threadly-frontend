@@ -8,6 +8,7 @@ import type {
   PostCommentsPage,
 } from '@/features/posts/types';
 import { unwrapThreadlyResponse } from './api';
+import { normalizeProfileImageUrl } from './profileImage';
 
 const mapAuthor = (raw: unknown, fallbackUserId?: string): PostAuthor => {
   if (raw && typeof raw === 'object') {
@@ -16,8 +17,9 @@ const mapAuthor = (raw: unknown, fallbackUserId?: string): PostAuthor => {
     return {
       userId,
       nickname: (data['nickname'] ?? data['nickName'] ?? '').toString(),
-      profileImageUrl:
+      profileImageUrl: normalizeProfileImageUrl(
         (data['profileImageUrl'] ?? data['profile_image_url'] ?? undefined) as string | undefined,
+      ),
     };
   }
   return {

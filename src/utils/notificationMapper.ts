@@ -8,6 +8,7 @@ import type {
 } from '@/types/notifications';
 
 import { unwrapThreadlyResponse } from './api';
+import { normalizeProfileImageUrl } from './profileImage';
 
 const normalizeType = (value: unknown): NotificationType => {
   switch ((value ?? '').toString().toUpperCase()) {
@@ -34,7 +35,7 @@ const mapActorProfile = (raw: unknown): ActorProfile => {
     return {
       userId: (data['userId'] ?? '').toString(),
       nickname: (data['nickname'] ?? '').toString(),
-      profileImageUrl: data['profileImageUrl']?.toString() ?? undefined,
+      profileImageUrl: normalizeProfileImageUrl(data['profileImageUrl']?.toString()),
     };
   }
   return { userId: '', nickname: '' };

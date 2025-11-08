@@ -9,6 +9,7 @@ import type { NotificationItem } from '@/types/notifications';
 import { formatRelativeTime } from '@/utils/date';
 import clsx from 'clsx';
 import { buildErrorMessage } from '@/utils/errorMessage';
+import { getProfileImageUrl } from '@/utils/profileImage';
 
 const NotificationDetailPage = () => {
   const { eventId } = useParams<{ eventId: string }>();
@@ -133,6 +134,7 @@ const NotificationDetailPage = () => {
   }
 
   const notification = detailQuery.data;
+  const actorAvatarUrl = getProfileImageUrl(notification.actorProfile.profileImageUrl);
   const { title, description } = buildNotificationText(notification);
 
   return (
@@ -143,11 +145,7 @@ const NotificationDetailPage = () => {
       <div className="detail-card">
         <div className="detail-header">
           <div className="detail-avatar">
-            {notification.actorProfile.profileImageUrl ? (
-              <img src={notification.actorProfile.profileImageUrl} alt="avatar" />
-            ) : (
-              <span>{notification.actorProfile.nickname?.charAt(0) ?? '?'}</span>
-            )}
+            <img src={actorAvatarUrl} alt="avatar" />
           </div>
           <div className="detail-header__content">
             <h2>{title}</h2>

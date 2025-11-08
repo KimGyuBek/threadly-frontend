@@ -9,6 +9,7 @@ import type {
 import { toFeedResponse, toFeedPost, toPostCommentsPage } from '@/utils/postMapper';
 import type { AxiosRequestConfig } from 'axios';
 import { unwrapThreadlyResponse } from '@/utils/api';
+import { normalizeProfileImageUrl } from '@/utils/profileImage';
 
 interface FeedParams {
   cursorTimestamp?: string;
@@ -85,8 +86,9 @@ export const createPostComment = async (postId: string, content: string): Promis
   const commentId = (data['commentId'] ?? data['comment_id'] ?? '').toString();
   const userId = (data['userId'] ?? data['user_id'] ?? '').toString();
   const nickname = (data['userNickname'] ?? data['user_nickname'] ?? '').toString();
-  const profileImageUrl =
-    (data['userProfileImageUrl'] ?? data['user_profile_image_url'] ?? undefined) as string | undefined;
+  const profileImageUrl = normalizeProfileImageUrl(
+    (data['userProfileImageUrl'] ?? data['user_profile_image_url'] ?? undefined) as string | undefined,
+  );
   return {
     postId,
     commentId,

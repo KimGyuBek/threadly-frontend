@@ -1,5 +1,6 @@
 import type { FollowStatus, MyProfile, UserProfile } from '@/features/profile/types';
 import { unwrapThreadlyResponse } from './api';
+import { normalizeProfileImageUrl } from './profileImage';
 
 export const toProfile = (payload: unknown): UserProfile => {
   const data = unwrapThreadlyResponse<Record<string, unknown>>(payload);
@@ -8,9 +9,9 @@ export const toProfile = (payload: unknown): UserProfile => {
     user: {
       userId: (user['userId'] ?? user['user_id'] ?? '').toString(),
       nickname: (user['nickname'] ?? '').toString(),
-      profileImageUrl: (user['profileImageUrl'] ?? user['profile_image_url'] ?? undefined) as
-        | string
-        | undefined,
+      profileImageUrl: normalizeProfileImageUrl(
+        (user['profileImageUrl'] ?? user['profile_image_url'] ?? undefined) as string | undefined,
+      ),
     },
     statusMessage: (data['statusMessage'] ?? data['status_message'] ?? '') as string,
     bio: (data['bio'] ?? '') as string,
@@ -29,7 +30,9 @@ export const toMyProfile = (payload: unknown): MyProfile => {
     bio: (data['bio'] ?? '') as string,
     phone: (data['phone'] ?? '') as string,
     genderType: (data['genderType'] ?? data['gender_type'] ?? data['gender'] ?? '') as string,
-    profileImageUrl: (data['profileImageUrl'] ?? data['profile_image_url'] ?? undefined) as string | undefined,
+    profileImageUrl: normalizeProfileImageUrl(
+      (data['profileImageUrl'] ?? data['profile_image_url'] ?? undefined) as string | undefined,
+    ),
     isPrivate: Boolean(data['isPrivate'] ?? data['is_private'] ?? false),
     followerCount: Number(data['followerCount'] ?? data['follower_count'] ?? 0),
     followingCount: Number(data['followingCount'] ?? data['following_count'] ?? 0),
