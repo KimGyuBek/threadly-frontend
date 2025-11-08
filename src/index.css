@@ -821,7 +821,7 @@ a {
 .post-card__avatar {
   width: 48px;
   height: 48px;
-  border-radius: 16px;
+  border-radius: 50%;
   overflow: hidden;
   background: var(--color-border-soft);
   display: flex;
