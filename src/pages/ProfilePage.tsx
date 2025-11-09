@@ -11,9 +11,11 @@ import { buildErrorMessage } from '@/utils/errorMessage';
 import { isAxiosError } from 'axios';
 import { isThreadlyApiError } from '@/utils/threadlyError';
 import { getProfileImageUrl } from '@/utils/profileImage';
+import { useImageViewer } from '@/providers/ImageViewerProvider';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
+  const { openImage } = useImageViewer();
   const profileQuery = useQuery({
     queryKey: ['me', 'profile', 'detail'],
     queryFn: fetchMyProfile,
@@ -96,13 +98,30 @@ const ProfilePage = () => {
   const initial = displayName?.charAt(0) ?? profile.userId.charAt(0);
   const avatarUrl = getProfileImageUrl(profile.profileImageUrl);
 
+  const handleAvatarPreview = () => {
+    if (avatarUrl) {
+      openImage(avatarUrl, `${displayName ?? initial}의 프로필 이미지`);
+    }
+  };
+
   return (
     <div className="profile-container">
       <button type="button" className="btn btn--secondary" onClick={() => navigate(-1)}>
         뒤로가기
       </button>
       <div className="profile-header">
-        <div className="profile-avatar">
+        <div
+          className="profile-avatar"
+          role="button"
+          tabIndex={0}
+          onClick={handleAvatarPreview}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              handleAvatarPreview();
+            }
+          }}
+        >
           <img src={avatarUrl} alt={displayName ?? initial} />
         </div>
         <div>

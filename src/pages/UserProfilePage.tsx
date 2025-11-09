@@ -16,11 +16,13 @@ import { useAuthStore } from '@/store/authStore';
 import { isAxiosError } from 'axios';
 import { isThreadlyApiError } from '@/utils/threadlyError';
 import { getProfileImageUrl } from '@/utils/profileImage';
+import { useImageViewer } from '@/providers/ImageViewerProvider';
 
 const UserProfilePage = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const hasAccessToken = useAuthStore((state) => Boolean(state.tokens?.accessToken));
+  const { openImage } = useImageViewer();
 
   const profileQuery = useQuery({
     queryKey: ['user', userId],
@@ -101,13 +103,30 @@ const UserProfilePage = () => {
   const initial = profile.user.nickname?.charAt(0) ?? profile.user.userId.charAt(0);
   const avatarUrl = getProfileImageUrl(profile.user.profileImageUrl);
 
+  const handleAvatarPreview = () => {
+    if (avatarUrl) {
+      openImage(avatarUrl, `${profile.user.nickname ?? initial}의 프로필 이미지`);
+    }
+  };
+
   return (
     <div className="profile-container">
       <button type="button" className="btn btn--secondary" onClick={() => navigate(-1)}>
         뒤로가기
       </button>
       <div className="profile-header">
-        <div className="profile-avatar">
+        <div
+          className="profile-avatar"
+          role="button"
+          tabIndex={0}
+          onClick={handleAvatarPreview}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              handleAvatarPreview();
+            }
+          }}
+        >
           <img src={avatarUrl} alt={profile.user.nickname ?? initial} />
         </div>
         <div>

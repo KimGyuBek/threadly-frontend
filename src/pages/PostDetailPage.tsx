@@ -202,6 +202,7 @@ const PostDetailPage = () => {
           viewerUserId={viewerUserId}
           invalidateKeys={postId ? [{ queryKey: ['post', postId] }] : []}
           onDeleteSuccess={handlePostDeleted}
+          enableImagePreview
         />
       </div>
 
@@ -299,6 +300,7 @@ const PostCommentItem = ({ comment, postId, viewerUserId }: PostCommentItemProps
   const menuRef = useRef<HTMLDivElement | null>(null);
   const moreButtonRef = useRef<HTMLButtonElement | null>(null);
   const canManageComment = Boolean(viewerUserId && viewerUserId === comment.commenter.userId);
+
 
   useEffect(() => {
     setLiked(comment.liked);

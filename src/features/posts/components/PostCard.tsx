@@ -11,6 +11,7 @@ import { deletePost, fetchPostEngagement, likePost, unlikePost, updatePost } fro
 import { buildErrorMessage } from '@/utils/errorMessage';
 import { FollowButton } from '@/features/profile/components/FollowButton';
 import { getProfileImageUrl } from '@/utils/profileImage';
+import { useImageViewer } from '@/providers/ImageViewerProvider';
 
 const TARGET_IMAGE_ASPECT_RATIO = 3 / 4;
 const IMAGE_RATIO_TOLERANCE = 0.05;
@@ -22,6 +23,7 @@ interface Props {
   viewerUserId?: string;
   invalidateKeys?: { queryKey: QueryKey }[];
   onDeleteSuccess?: (postId: string) => void;
+  enableImagePreview?: boolean;
 }
 
 export const PostCard = ({
@@ -31,9 +33,11 @@ export const PostCard = ({
   viewerUserId,
   invalidateKeys = [],
   onDeleteSuccess,
+  enableImagePreview = false,
 }: Props) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { openImages } = useImageViewer();
   const [liked, setLiked] = useState(post.liked);
   const [likeCount, setLikeCount] = useState(post.likeCount);
   const [currentContent, setCurrentContent] = useState(post.content);
@@ -227,6 +231,16 @@ export const PostCard = ({
       return;
     }
     toggleLikeMutation.mutate(!liked);
+  };
+
+  const imageUrls = images.map((image) => image.imageUrl).filter((url) => Boolean(url));
+
+  const handleImagePreview = (imageIndex: number) => (event: React.MouseEvent<HTMLImageElement>) => {
+    event.stopPropagation();
+    if (!enableImagePreview || imageUrls.length === 0) {
+      return;
+    }
+    openImages(imageUrls, imageIndex, '게시글 이미지');
   };
 
   const beginEditing = () => {
@@ -432,7 +446,7 @@ export const PostCard = ({
             className="post-card__carousel-track"
             style={{ transform: `translateX(-${currentImageIndex * 100}%)` }}
           >
-            {images.map((image) => {
+            {images.map((image, index) => {
               const imageKey = `${image.imageId}-${image.imageOrder}`;
               const isLetterbox = imageFitMap[imageKey] === 'letterbox';
               return (
@@ -440,7 +454,13 @@ export const PostCard = ({
                   <div
                     className={`post-card__image-wrapper ${isLetterbox ? 'post-card__image-wrapper--letterbox' : 'post-card__image-wrapper--cover'}`}
                   >
-                    <img src={image.imageUrl} alt="post" loading="lazy" onLoad={handleImageLoad(imageKey)} />
+                    <img
+                      src={image.imageUrl}
+                      alt="post"
+                      loading="lazy"
+                      onLoad={handleImageLoad(imageKey)}
+                      onClick={handleImagePreview(index)}
+                    />
                   </div>
                 </div>
               );
