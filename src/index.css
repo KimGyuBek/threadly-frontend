@@ -729,6 +729,19 @@ a {
   margin: 0 auto;
 }
 
+.post-detail-page {
+  min-height: 100vh;
+  gap: 1rem;
+  padding-bottom: 1rem;
+}
+
+.post-detail-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
 .feed-list {
   display: flex;
   flex-direction: column;
@@ -1123,6 +1136,19 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+}
+
+.post-card__meta-button {
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+}
+
+.post-card__meta-button:focus-visible {
+  outline: 2px solid rgba(255, 95, 109, 0.35);
+  border-radius: 8px;
 }
 
 .search-container,
@@ -1733,6 +1759,76 @@ a {
   box-shadow: var(--shadow-soft);
 }
 
+.post-comment-form--sticky {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  z-index: 10;
+  box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.12);
+}
+
+.post-comments-preview {
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: 16px;
+  border: 1px solid var(--color-border-soft);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.post-comments-preview--inline {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.post-comments-preview:focus-visible {
+  outline: 2px solid rgba(255, 95, 109, 0.3);
+}
+
+.post-comments-preview__title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+
+.post-comments-preview__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.post-comments-preview__item {
+  display: flex;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+
+.post-comments-preview__item--placeholder {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.post-comments-preview__author {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.post-comments-preview__content {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .post-comment-form textarea {
   width: 100%;
   resize: none;
@@ -1897,6 +1993,17 @@ a {
 
 .post-comment__username {
   color: var(--color-text-muted);
+}
+
+.post-comment__author-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(255, 95, 109, 0.15);
+  color: var(--color-accent);
+  font-size: 0.78rem;
+  font-weight: 600;
 }
 
 .post-comment__time {

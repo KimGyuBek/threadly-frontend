@@ -97,6 +97,8 @@ const PostDetailPage = () => {
   const canSubmitComment = Boolean(postId) && trimmedCommentContent.length > 0;
 
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const commentsSectionRef = useRef<HTMLElement | null>(null);
+  const [isCommentSectionVisible, setIsCommentSectionVisible] = useState(false);
   const { fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = commentsQuery;
 
   const handleLoadMore = useCallback(() => {
@@ -114,6 +116,20 @@ const PostDetailPage = () => {
     }
     navigate('/', { replace: true });
   }, [navigate, postId, queryClient]);
+
+  useEffect(() => {
+    const element = commentsSectionRef.current;
+    if (!element) {
+      return undefined;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      setIsCommentSectionVisible(entries.some((entry) => entry.isIntersecting));
+    });
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   const appendCommentToCache = (newComment: PostComment) => {
     if (!postId) {
@@ -189,24 +205,70 @@ const PostDetailPage = () => {
     );
   }
 
+  const post = detailQuery.data;
+  const postAuthorId = post.author.userId;
+
   return (
-    <div className="feed-container">
-      <button type="button" className="btn btn--secondary" onClick={() => navigate(-1)}>
-        뒤로가기
-      </button>
-      <div className="feed-list">
-        <PostCard
-          post={detailQuery.data}
-          disableNavigation
-          allowAuthorNavigation
-          viewerUserId={viewerUserId}
-          invalidateKeys={postId ? [{ queryKey: ['post', postId] }] : []}
-          onDeleteSuccess={handlePostDeleted}
-          enableImagePreview
-        />
+    <div className="feed-container post-detail-page">
+      <div className="post-detail-content">
+        <button type="button" className="btn btn--secondary" onClick={() => navigate(-1)}>
+          뒤로가기
+        </button>
+        <div className="feed-list">
+          <PostCard
+            post={detailQuery.data}
+            disableNavigation
+            allowAuthorNavigation
+            viewerUserId={viewerUserId}
+            invalidateKeys={postId ? [{ queryKey: ['post', postId] }] : []}
+            onDeleteSuccess={handlePostDeleted}
+            enableImagePreview
+            disableCommentPreview
+          />
+        </div>
+
+        <section className="post-comments" ref={commentsSectionRef}>
+          <h3>댓글 {commentCount.toLocaleString()}</h3>
+          {commentsQuery.isLoading ? (
+            <div className="post-comments__placeholder">댓글을 불러오는 중입니다...</div>
+          ) : null}
+          {commentsQuery.isError && !commentsQuery.isLoading ? (
+            <div className="post-comments__placeholder">
+              <p>댓글을 불러오지 못했습니다.</p>
+              <button type="button" className="btn btn--secondary" onClick={() => commentsQuery.refetch()}>
+                다시 시도
+              </button>
+            </div>
+          ) : null}
+          {hasUnauthorizedComments && !commentsQuery.isLoading ? (
+            <div className="post-comments__placeholder">댓글을 보려면 로그인하세요.</div>
+          ) : null}
+          {!commentsQuery.isLoading && !hasUnauthorizedComments && comments.length === 0 ? (
+            <div className="post-comments__placeholder">댓글이 없습니다.</div>
+          ) : null}
+          {comments.length > 0 ? (
+            <ul className="post-comments__list">
+              {comments.map((comment) => (
+                <PostCommentItem
+                  key={comment.commentId}
+                  comment={comment}
+                  postId={postId ?? undefined}
+                  viewerUserId={viewerUserId}
+                  postAuthorId={postAuthorId}
+                />
+              ))}
+            </ul>
+          ) : null}
+          {!commentsQuery.isLoading && !hasUnauthorizedComments && (comments.length > 0 || hasNextPage) ? (
+            <div ref={loadMoreRef} className="post-comments__sentinel">
+              {isFetchingNextPage ? <span>불러오는 중...</span> : null}
+              {!hasNextPage && comments.length > 0 ? <span>모든 댓글을 확인했습니다.</span> : null}
+            </div>
+          ) : null}
+        </section>
       </div>
 
-      <section className="post-comment-form">
+      <section className={`post-comment-form ${isCommentSectionVisible ? 'post-comment-form--sticky' : ''}`}>
         <form onSubmit={handleCommentSubmit}>
           <label htmlFor="commentContent" className="sr-only">
             댓글 내용
@@ -234,47 +296,6 @@ const PostDetailPage = () => {
           </div>
         </form>
       </section>
-
-      {commentCount > 0 ? (
-        <section className="post-comments">
-          <h3>댓글 {commentCount.toLocaleString()}</h3>
-          {commentsQuery.isLoading ? (
-            <div className="post-comments__placeholder">댓글을 불러오는 중입니다...</div>
-          ) : null}
-          {commentsQuery.isError && !commentsQuery.isLoading ? (
-            <div className="post-comments__placeholder">
-              <p>댓글을 불러오지 못했습니다.</p>
-              <button type="button" className="btn btn--secondary" onClick={() => commentsQuery.refetch()}>
-                다시 시도
-              </button>
-            </div>
-          ) : null}
-          {hasUnauthorizedComments && !commentsQuery.isLoading ? (
-            <div className="post-comments__placeholder">댓글을 보려면 로그인하세요.</div>
-          ) : null}
-          {!commentsQuery.isLoading && !hasUnauthorizedComments && comments.length === 0 ? (
-            <div className="post-comments__placeholder">댓글이 없습니다.</div>
-          ) : null}
-          {comments.length > 0 ? (
-            <ul className="post-comments__list">
-              {comments.map((comment) => (
-                <PostCommentItem
-                  key={comment.commentId}
-                  comment={comment}
-                  postId={postId ?? undefined}
-                  viewerUserId={viewerUserId}
-                />
-              ))}
-            </ul>
-          ) : null}
-          {!commentsQuery.isLoading && !hasUnauthorizedComments && (comments.length > 0 || hasNextPage) ? (
-            <div ref={loadMoreRef} className="post-comments__sentinel">
-              {isFetchingNextPage ? <span>불러오는 중...</span> : null}
-              {!hasNextPage && comments.length > 0 ? <span>모든 댓글을 확인했습니다.</span> : null}
-            </div>
-          ) : null}
-        </section>
-      ) : null}
     </div>
   );
 };
@@ -285,9 +306,10 @@ interface PostCommentItemProps {
   comment: PostComment;
   postId?: string;
   viewerUserId?: string;
+  postAuthorId?: string;
 }
 
-const PostCommentItem = ({ comment, postId, viewerUserId }: PostCommentItemProps) => {
+const PostCommentItem = ({ comment, postId, viewerUserId, postAuthorId }: PostCommentItemProps) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [liked, setLiked] = useState(comment.liked);
@@ -300,6 +322,7 @@ const PostCommentItem = ({ comment, postId, viewerUserId }: PostCommentItemProps
   const menuRef = useRef<HTMLDivElement | null>(null);
   const moreButtonRef = useRef<HTMLButtonElement | null>(null);
   const canManageComment = Boolean(viewerUserId && viewerUserId === comment.commenter.userId);
+  const isAuthorComment = Boolean(postAuthorId && comment.commenter.userId === postAuthorId);
 
 
   useEffect(() => {
@@ -560,7 +583,7 @@ const PostCommentItem = ({ comment, postId, viewerUserId }: PostCommentItemProps
         <div className="post-comment__header">
           <div className="post-comment__meta">
             <span className="post-comment__name">{comment.commenter.nickname}</span>
-            <span className="post-comment__username">@{comment.commenter.userId}</span>
+            {isAuthorComment ? <span className="post-comment__author-badge">작성자</span> : null}
             <span className="post-comment__time">{formatRelativeTime(comment.commentedAt)}</span>
           </div>
           {canManageComment ? (

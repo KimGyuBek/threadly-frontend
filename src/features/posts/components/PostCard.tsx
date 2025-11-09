@@ -1,17 +1,25 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import type { QueryKey } from '@tanstack/react-query';
 import { Heart, MessageSquare, Eye, ChevronLeft, ChevronRight, EllipsisVertical } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 import type { FeedPost } from '../types';
 import { formatRelativeTime } from '@/utils/date';
-import { deletePost, fetchPostEngagement, likePost, unlikePost, updatePost } from '@/features/posts/api/postsApi';
+import {
+  deletePost,
+  fetchPostEngagement,
+  fetchPostComments,
+  likePost,
+  unlikePost,
+  updatePost,
+} from '@/features/posts/api/postsApi';
 import { buildErrorMessage } from '@/utils/errorMessage';
 import { FollowButton } from '@/features/profile/components/FollowButton';
 import { getProfileImageUrl } from '@/utils/profileImage';
 import { useImageViewer } from '@/providers/ImageViewerProvider';
+import { useIsMobile } from '@/hooks/useMediaQuery';
 
 const TARGET_IMAGE_ASPECT_RATIO = 3 / 4;
 const IMAGE_RATIO_TOLERANCE = 0.05;
@@ -24,6 +32,8 @@ interface Props {
   invalidateKeys?: { queryKey: QueryKey }[];
   onDeleteSuccess?: (postId: string) => void;
   enableImagePreview?: boolean;
+  onCommentClick?: () => void;
+  disableCommentPreview?: boolean;
 }
 
 export const PostCard = ({
@@ -34,6 +44,8 @@ export const PostCard = ({
   invalidateKeys = [],
   onDeleteSuccess,
   enableImagePreview = false,
+  onCommentClick,
+  disableCommentPreview = false,
 }: Props) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -50,6 +62,7 @@ export const PostCard = ({
   const indicatorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const moreButtonRef = useRef<HTMLButtonElement | null>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     setLiked(post.liked);
@@ -218,11 +231,15 @@ export const PostCard = ({
     navigate(`/users/${targetUserId}`);
   };
 
+  const navigateToComments = useCallback(() => {
+    navigate(`/posts/${post.postId}/comments`);
+  }, [navigate, post.postId]);
+
   const handlePostClick = () => {
     if (!isPostNavigable) {
       return;
     }
-    navigate(`/posts/${post.postId}`);
+    navigateToComments();
   };
 
   const handleLikeClick = (event: React.MouseEvent) => {
@@ -233,7 +250,28 @@ export const PostCard = ({
     toggleLikeMutation.mutate(!liked);
   };
 
+  const handleCommentMetaClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (onCommentClick) {
+      onCommentClick();
+      return;
+    }
+    navigateToComments();
+  };
+
   const imageUrls = images.map((image) => image.imageUrl).filter((url) => Boolean(url));
+
+  const shouldShowCommentPreview = !disableCommentPreview && isMobile && post.commentCount > 0;
+  const {
+    data: previewData,
+    isLoading: isPreviewLoading,
+  } = useQuery({
+    queryKey: ['post', post.postId, 'comments', 'preview'],
+    enabled: shouldShowCommentPreview,
+    staleTime: 30_000,
+    queryFn: () => fetchPostComments(post.postId, { limit: 2 }),
+  });
+  const previewComments = previewData?.comments ?? [];
 
   const handleImagePreview = (imageIndex: number) => (event: React.MouseEvent<HTMLImageElement>) => {
     event.stopPropagation();
@@ -333,6 +371,15 @@ export const PostCard = ({
     }
     setCurrentImageIndex((prev) => (prev + 1) % images.length);
     flashIndicators();
+  };
+
+  const handlePreviewClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (onCommentClick) {
+      onCommentClick();
+      return;
+    }
+    navigateToComments();
   };
 
   return (
@@ -500,6 +547,31 @@ export const PostCard = ({
           ) : null}
         </div>
       ) : null}
+      {shouldShowCommentPreview ? (
+        <button
+          type="button"
+          className="post-comments-preview post-comments-preview--inline"
+          onClick={handlePreviewClick}
+        >
+          <div className="post-comments-preview__title">
+            댓글 {post.commentCount.toLocaleString()}개 모두 보기
+          </div>
+          <ul className="post-comments-preview__list">
+            {previewComments.length > 0
+              ? previewComments.map((comment) => (
+                  <li key={comment.commentId} className="post-comments-preview__item">
+                    <span className="post-comments-preview__author">{comment.commenter.nickname}</span>
+                    <span className="post-comments-preview__content">{comment.content}</span>
+                  </li>
+                ))
+              : (
+                  <li className="post-comments-preview__item post-comments-preview__item--placeholder">
+                    {isPreviewLoading ? '댓글을 불러오는 중입니다...' : '댓글을 불러오지 못했습니다.'}
+                  </li>
+                )}
+          </ul>
+        </button>
+      ) : null}
       <footer className="post-card__footer" onClick={(event) => event.stopPropagation()}>
         <button
           type="button"
@@ -510,10 +582,15 @@ export const PostCard = ({
           <Heart size={18} />
           <span>{likeCount}</span>
         </button>
-        <div className="post-card__meta">
+        <button
+          type="button"
+          className="post-card__meta post-card__meta-button"
+          onClick={handleCommentMetaClick}
+          aria-label="댓글 보기"
+        >
           <MessageSquare size={18} />
           <span>{post.commentCount}</span>
-        </div>
+        </button>
         <div className="post-card__meta">
           <Eye size={18} />
           <span>{post.viewCount}</span>

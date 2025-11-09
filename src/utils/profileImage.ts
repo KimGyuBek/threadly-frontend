@@ -1,13 +1,14 @@
 const DEFAULT_PROFILE_IMAGE_URL = new URL('../../default_profileimage.svg', import.meta.url).href;
 
-const INVALID_PROFILE_IMAGE_VALUES = new Set(['', '/', './']);
+const INVALID_PROFILE_IMAGE_VALUES = new Set(['', '/', './', 'default']);
 
 export const normalizeProfileImageUrl = (url?: string | null): string | undefined => {
   if (!url) {
     return undefined;
   }
   const trimmed = url.trim();
-  if (!trimmed || INVALID_PROFILE_IMAGE_VALUES.has(trimmed)) {
+  const normalized = trimmed.toLowerCase();
+  if (!trimmed || INVALID_PROFILE_IMAGE_VALUES.has(normalized)) {
     return undefined;
   }
   return trimmed;

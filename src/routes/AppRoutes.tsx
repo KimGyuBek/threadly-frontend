@@ -27,7 +27,7 @@ export const AppRoutes = () => {
           <Route path="profile/setup" element={<ProfileSetupPage />} />
           <Route path="profile/details" element={<MyProfileSummaryPage />} />
           <Route path="users/:userId" element={<UserProfilePage />} />
-          <Route path="posts/:postId" element={<PostDetailPage />} />
+          <Route path="posts/:postId/comments" element={<PostDetailPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="notifications/:eventId" element={<NotificationDetailPage />} />
         </Route>
