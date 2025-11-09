@@ -24,6 +24,19 @@ export interface FeedPost {
   liked: boolean;
 }
 
+export interface UpdatePostResult {
+  postId: string;
+  userId: string;
+  userNickname: string;
+  userProfileImageUrl?: string;
+  content: string;
+  viewCount: number;
+  postedAt: string;
+  likeCount: number;
+  commentCount: number;
+  liked: boolean;
+}
+
 export interface PostComment {
   postId: string;
   commentId: string;

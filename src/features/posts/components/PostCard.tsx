@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { QueryKey } from '@tanstack/react-query';
-import { Heart, MessageSquare, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Heart, MessageSquare, Eye, ChevronLeft, ChevronRight, EllipsisVertical } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 import type { FeedPost } from '../types';
 import { formatRelativeTime } from '@/utils/date';
-import { fetchPostEngagement, likePost, unlikePost } from '@/features/posts/api/postsApi';
+import { deletePost, fetchPostEngagement, likePost, unlikePost, updatePost } from '@/features/posts/api/postsApi';
 import { buildErrorMessage } from '@/utils/errorMessage';
 import { FollowButton } from '@/features/profile/components/FollowButton';
 import { getProfileImageUrl } from '@/utils/profileImage';
@@ -21,6 +21,7 @@ interface Props {
   allowAuthorNavigation?: boolean;
   viewerUserId?: string;
   invalidateKeys?: { queryKey: QueryKey }[];
+  onDeleteSuccess?: (postId: string) => void;
 }
 
 export const PostCard = ({
@@ -29,19 +30,30 @@ export const PostCard = ({
   allowAuthorNavigation = false,
   viewerUserId,
   invalidateKeys = [],
+  onDeleteSuccess,
 }: Props) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [liked, setLiked] = useState(post.liked);
   const [likeCount, setLikeCount] = useState(post.likeCount);
+  const [currentContent, setCurrentContent] = useState(post.content);
+  const [editedContent, setEditedContent] = useState(post.content);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [imageFitMap, setImageFitMap] = useState<Record<string, 'cover' | 'letterbox'>>({});
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showIndicators, setShowIndicators] = useState(false);
   const indicatorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const moreButtonRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     setLiked(post.liked);
     setLikeCount(post.likeCount);
+    if (!isEditing) {
+      setCurrentContent(post.content);
+      setEditedContent(post.content);
+    }
     setImageFitMap({});
     setCurrentImageIndex(0);
     setShowIndicators(false);
@@ -49,7 +61,7 @@ export const PostCard = ({
       clearTimeout(indicatorTimeoutRef.current);
       indicatorTimeoutRef.current = null;
     }
-  }, [post.postId, post.liked, post.likeCount, post.images?.length]);
+  }, [post.postId, post.liked, post.likeCount, post.images?.length, post.content, isEditing]);
 
   useEffect(() => {
     return () => {
@@ -58,6 +70,44 @@ export const PostCard = ({
       }
     };
   }, []);
+
+  const invalidateRelatedQueries = (extraKeys: { queryKey: QueryKey }[] = []) => {
+    const defaultInvalidate = [
+      { queryKey: ['post', post.postId] },
+      { queryKey: ['feed'] },
+    ];
+    const dedup = new Map<string, QueryKey>();
+    [...defaultInvalidate, ...invalidateKeys, ...extraKeys].forEach((entry) => {
+      const key = entry?.queryKey;
+      if (!key) {
+        return;
+      }
+      const serialized = JSON.stringify(key);
+      if (!dedup.has(serialized)) {
+        dedup.set(serialized, key);
+      }
+    });
+    dedup.forEach((queryKey) => {
+      void queryClient.invalidateQueries({ queryKey });
+    });
+  };
+
+  useEffect(() => {
+    if (!isMenuOpen) {
+      return;
+    }
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (menuRef.current?.contains(target) || moreButtonRef.current?.contains(target)) {
+        return;
+      }
+      setIsMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMenuOpen]);
 
   const toggleLikeMutation = useMutation<void, unknown, boolean, { previousLiked: boolean; previousLikeCount: number }>({
     mutationFn: (nextLiked) => (nextLiked ? likePost(post.postId) : unlikePost(post.postId)),
@@ -75,24 +125,7 @@ export const PostCard = ({
         toast.error(buildErrorMessage(error, '좋아요 정보를 새로고침하지 못했습니다.'));
       }
 
-      const defaultInvalidate = [
-        { queryKey: ['post', post.postId] },
-        { queryKey: ['feed'] },
-      ];
-      const dedup = new Map<string, QueryKey>();
-      [...defaultInvalidate, ...invalidateKeys].forEach((entry) => {
-        const key = entry?.queryKey;
-        if (!key) {
-          return;
-        }
-        const serialized = JSON.stringify(key);
-        if (!dedup.has(serialized)) {
-          dedup.set(serialized, key);
-        }
-      });
-      dedup.forEach((queryKey) => {
-        void queryClient.invalidateQueries({ queryKey });
-      });
+      invalidateRelatedQueries();
     },
     onError: (error, _variables, context) => {
       if (context) {
@@ -103,13 +136,55 @@ export const PostCard = ({
     },
   });
 
+  const updatePostMutation = useMutation({
+    mutationFn: (content: string) => updatePost(post.postId, content),
+    onSuccess: (updated) => {
+      setIsEditing(false);
+      setCurrentContent(updated.content);
+      setEditedContent(updated.content);
+      setLiked(updated.liked);
+      setLikeCount(updated.likeCount);
+      toast.success('게시글을 수정했습니다.');
+      invalidateRelatedQueries();
+    },
+    onError: (error) => {
+      toast.error(buildErrorMessage(error, '게시글을 수정하지 못했습니다.'));
+    },
+  });
+
+  const deletePostMutation = useMutation({
+    mutationFn: () => deletePost(post.postId),
+    onSuccess: () => {
+      setIsEditing(false);
+      toast.success('게시글을 삭제했습니다.');
+      invalidateRelatedQueries();
+      if (onDeleteSuccess) {
+        onDeleteSuccess(post.postId);
+      }
+    },
+    onError: (error) => {
+      toast.error(buildErrorMessage(error, '게시글을 삭제하지 못했습니다.'));
+    },
+  });
+
   const isPostNavigable = !disableNavigation;
   const isAuthorNavigable = !disableNavigation || allowAuthorNavigation;
   const authorId = post.author.userId || post.userId;
   const shouldShowFollowButton = Boolean(viewerUserId && authorId && viewerUserId !== authorId);
+  const canManagePost = Boolean(viewerUserId && authorId && viewerUserId === authorId);
   const authorAvatarUrl = getProfileImageUrl(post.author.profileImageUrl);
   const images = post.images ?? [];
   const hasMultipleImages = images.length > 1;
+
+  useEffect(() => {
+    if (!authorId || !viewerUserId) {
+      return;
+    }
+    if (viewerUserId !== authorId && isEditing) {
+      setIsEditing(false);
+      setEditedContent(currentContent);
+    }
+  }, [viewerUserId, authorId, isEditing, currentContent]);
 
   const handleImageLoad = (imageKey: string) => (event: React.SyntheticEvent<HTMLImageElement>) => {
     const target = event.currentTarget;
@@ -152,6 +227,66 @@ export const PostCard = ({
       return;
     }
     toggleLikeMutation.mutate(!liked);
+  };
+
+  const beginEditing = () => {
+    if (!canManagePost || updatePostMutation.isPending || deletePostMutation.isPending) {
+      return;
+    }
+    setEditedContent(currentContent);
+    setIsEditing(true);
+  };
+
+  const handleEditSelection = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    setIsMenuOpen(false);
+    beginEditing();
+  };
+
+  const handleCancelEdit = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (updatePostMutation.isPending) {
+      return;
+    }
+    setEditedContent(currentContent);
+    setIsEditing(false);
+  };
+
+  const handleSaveEdit = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (!canManagePost || updatePostMutation.isPending) {
+      return;
+    }
+    const trimmed = editedContent.trim();
+    if (!trimmed) {
+      toast.error('게시글 내용을 입력하세요.');
+      return;
+    }
+    if (trimmed === currentContent.trim()) {
+      setIsEditing(false);
+      return;
+    }
+    updatePostMutation.mutate(trimmed);
+  };
+
+  const handleDeleteSelection = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (!canManagePost || deletePostMutation.isPending || updatePostMutation.isPending) {
+      return;
+    }
+    setIsMenuOpen(false);
+    if (!window.confirm('게시글을 삭제하시겠습니까?')) {
+      return;
+    }
+    deletePostMutation.mutate();
+  };
+
+  const handleToggleMenu = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (!canManagePost) {
+      return;
+    }
+    setIsMenuOpen((prev) => !prev);
   };
 
   const flashIndicators = () => {
@@ -212,23 +347,85 @@ export const PostCard = ({
               <div className="post-card__time">{formatRelativeTime(post.postedAt)}</div>
             </div>
           </div>
-          {shouldShowFollowButton && authorId ? (
-            <div className="post-card__follow-wrapper">
-              <FollowButton
-                userId={authorId}
-                fetchStatus
-                invalidateKeys={[
-                  { queryKey: ['user', authorId] },
-                  { queryKey: ['feed'] },
-                  { queryKey: ['post', post.postId] },
-                ]}
-                className="post-card__follow-btn"
-              />
-            </div>
-          ) : null}
+          <div className="post-card__author-controls">
+            {shouldShowFollowButton && authorId ? (
+              <div className="post-card__follow-wrapper">
+                <FollowButton
+                  userId={authorId}
+                  fetchStatus
+                  invalidateKeys={[
+                    { queryKey: ['user', authorId] },
+                    { queryKey: ['feed'] },
+                    { queryKey: ['post', post.postId] },
+                  ]}
+                  className="post-card__follow-btn"
+                />
+              </div>
+            ) : null}
+            {canManagePost ? (
+              <div className="post-card__menu-wrapper" ref={menuRef}>
+                <button
+                  type="button"
+                  className="post-card__more-button"
+                  onClick={handleToggleMenu}
+                  ref={moreButtonRef}
+                  aria-haspopup="menu"
+                  aria-expanded={isMenuOpen}
+                  aria-label="게시글 관리 메뉴"
+                >
+                  <EllipsisVertical size={18} />
+                </button>
+                {isMenuOpen ? (
+                  <div className="post-card__menu" role="menu">
+                    <button type="button" role="menuitem" onClick={handleEditSelection}>
+                      수정
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="post-card__menu-item--danger"
+                      onClick={handleDeleteSelection}
+                    >
+                      삭제
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </div>
       </header>
-      <p className="post-card__content">{post.content}</p>
+      {isEditing ? (
+        <div className="post-card__editor" onClick={(event) => event.stopPropagation()}>
+          <textarea
+            value={editedContent}
+            onChange={(event) => setEditedContent(event.target.value)}
+            className="post-card__editor-textarea"
+            rows={4}
+            disabled={updatePostMutation.isPending}
+          />
+          <div className="post-card__editor-actions">
+            <button
+              type="button"
+              className="post-card__editor-btn"
+              onClick={handleCancelEdit}
+              disabled={updatePostMutation.isPending}
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              className="post-card__editor-btn post-card__editor-btn--primary"
+              onClick={handleSaveEdit}
+              disabled={updatePostMutation.isPending}
+            >
+              {updatePostMutation.isPending ? '저장 중...' : '저장'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <p className="post-card__content">{currentContent}</p>
+      )}
       {images.length ? (
         <div className="post-card__carousel" onClick={(event) => event.stopPropagation()}>
           <div

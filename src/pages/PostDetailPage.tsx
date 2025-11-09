@@ -105,6 +105,14 @@ const PostDetailPage = () => {
 
   useIntersectionObserver(loadMoreRef, handleLoadMore, { rootMargin: '200px' });
 
+  const handlePostDeleted = useCallback(() => {
+    if (postId) {
+      queryClient.removeQueries({ queryKey: ['post', postId] });
+      queryClient.removeQueries({ queryKey: ['post', postId, 'comments'] });
+    }
+    navigate('/', { replace: true });
+  }, [navigate, postId, queryClient]);
+
   const appendCommentToCache = (newComment: PostComment) => {
     if (!postId) {
       return;
@@ -191,6 +199,7 @@ const PostDetailPage = () => {
           allowAuthorNavigation
           viewerUserId={viewerUserId}
           invalidateKeys={postId ? [{ queryKey: ['post', postId] }] : []}
+          onDeleteSuccess={handlePostDeleted}
         />
       </div>
 

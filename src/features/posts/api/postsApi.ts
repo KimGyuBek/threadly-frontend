@@ -6,6 +6,7 @@ import type {
   UploadedPostImage,
   PostCommentsPage,
   PostComment,
+  UpdatePostResult,
 } from '../types';
 import { toFeedResponse, toFeedPost, toPostCommentsPage } from '@/utils/postMapper';
 import type { AxiosRequestConfig } from 'axios';
@@ -191,4 +192,28 @@ export const likePost = async (postId: string): Promise<void> => {
 
 export const unlikePost = async (postId: string): Promise<void> => {
   await threadlyApi.delete(`/api/posts/${postId}/likes`);
+};
+
+export const updatePost = async (postId: string, content: string): Promise<UpdatePostResult> => {
+  const response = await threadlyApi.patch(`/api/posts/${postId}`, { content });
+  const data = unwrapThreadlyResponse<Record<string, unknown>>(response.data);
+
+  return {
+    postId: (data['postId'] ?? data['post_id'] ?? '').toString(),
+    userId: (data['userId'] ?? data['user_id'] ?? '').toString(),
+    userNickname: (data['userNickname'] ?? data['user_nickname'] ?? '').toString(),
+    userProfileImageUrl: normalizeProfileImageUrl(
+      (data['userProfileImageUrl'] ?? data['user_profile_image_url'] ?? undefined) as string | undefined,
+    ),
+    content: (data['content'] ?? '').toString(),
+    viewCount: Number(data['viewCount'] ?? data['view_count'] ?? 0),
+    postedAt: data['postedAt']?.toString() ?? data['posted_at']?.toString() ?? '',
+    likeCount: Number(data['likeCount'] ?? data['like_count'] ?? 0),
+    commentCount: Number(data['commentCount'] ?? data['comment_count'] ?? 0),
+    liked: Boolean(data['liked'] ?? data['isLiked'] ?? data['is_liked'] ?? false),
+  };
+};
+
+export const deletePost = async (postId: string): Promise<void> => {
+  await threadlyApi.delete(`/api/posts/${postId}`);
 };

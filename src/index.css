@@ -806,6 +806,13 @@ a {
   gap: 0.85rem;
 }
 
+.post-card__author-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
 .post-card__author-meta {
   display: flex;
   flex-direction: column;
@@ -860,10 +867,116 @@ a {
   font-size: 0.85rem;
 }
 
+.post-card__menu-wrapper {
+  position: relative;
+}
+
+.post-card__more-button {
+  border: none;
+  background: transparent;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.post-card__more-button:hover {
+  background: var(--color-surface-muted);
+  color: var(--color-text-primary);
+}
+
+.post-card__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 120px;
+  padding: 0.35rem 0;
+  border-radius: 12px;
+  background: var(--color-surface);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  border: 1px solid var(--color-border-soft);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+}
+
+.post-card__menu button {
+  border: none;
+  background: transparent;
+  padding: 0.55rem 0.9rem;
+  text-align: left;
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+}
+
+.post-card__menu button:hover {
+  background: var(--color-surface-muted);
+}
+
+.post-card__menu-item--danger {
+  color: #d64545;
+}
+
+.post-card__menu-item--danger:hover {
+  background: rgba(214, 69, 69, 0.08);
+}
+
 .post-card__content {
   font-size: 1rem;
   line-height: 1.6;
   white-space: pre-wrap;
+}
+
+.post-card__editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.post-card__editor-textarea {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--color-border-soft);
+  padding: 0.75rem;
+  resize: vertical;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.post-card__editor-textarea:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px rgba(255, 95, 109, 0.15);
+}
+
+.post-card__editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.post-card__editor-btn {
+  border: 1px solid var(--color-border-soft);
+  border-radius: 999px;
+  padding: 0.35rem 1.1rem;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.post-card__editor-btn--primary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+
+.post-card__editor-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .post-card__carousel {
