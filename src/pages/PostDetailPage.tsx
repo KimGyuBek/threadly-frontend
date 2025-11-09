@@ -10,6 +10,8 @@ import {
   likeComment,
   unlikeComment,
   createPostComment,
+  updatePostComment,
+  deletePostComment,
   type CommentLikeResponse,
 } from '@/features/posts/api/postsApi';
 import type { FeedPost, PostComment, PostCommentsPage } from '@/features/posts/types';
@@ -18,7 +20,7 @@ import { buildErrorMessage } from '@/utils/errorMessage';
 import { formatRelativeTime } from '@/utils/date';
 import { isThreadlyApiError } from '@/utils/threadlyError';
 import { useMyProfileQuery } from '@/hooks/useMyProfile';
-import { Heart } from 'lucide-react';
+import { EllipsisVertical, Heart } from 'lucide-react';
 import { getProfileImageUrl } from '@/utils/profileImage';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 
@@ -259,6 +261,7 @@ const PostDetailPage = () => {
                   key={comment.commentId}
                   comment={comment}
                   postId={postId ?? undefined}
+                  viewerUserId={viewerUserId}
                 />
               ))}
             </ul>
@@ -277,19 +280,61 @@ const PostDetailPage = () => {
 
 export default PostDetailPage;
 
-const PostCommentItem = ({ comment, postId }: { comment: PostComment; postId?: string }) => {
+interface PostCommentItemProps {
+  comment: PostComment;
+  postId?: string;
+  viewerUserId?: string;
+}
+
+const PostCommentItem = ({ comment, postId, viewerUserId }: PostCommentItemProps) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [liked, setLiked] = useState(comment.liked);
   const [likeCount, setLikeCount] = useState(comment.likeCount);
+  const [currentContent, setCurrentContent] = useState(comment.content);
+  const [editedContent, setEditedContent] = useState(comment.content);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const commenterAvatarUrl = getProfileImageUrl(comment.commenter.profileImageUrl);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const moreButtonRef = useRef<HTMLButtonElement | null>(null);
+  const canManageComment = Boolean(viewerUserId && viewerUserId === comment.commenter.userId);
 
   useEffect(() => {
     setLiked(comment.liked);
     setLikeCount(comment.likeCount);
-  }, [comment.commentId, comment.liked, comment.likeCount]);
+    if (!isEditing) {
+      setCurrentContent(comment.content);
+      setEditedContent(comment.content);
+    }
+  }, [comment.commentId, comment.liked, comment.likeCount, comment.content, isEditing]);
 
-  const updateCachedComment = (nextLiked: boolean, nextCount: number) => {
+  useEffect(() => {
+    if (!isMenuOpen) {
+      return;
+    }
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (menuRef.current?.contains(target) || moreButtonRef.current?.contains(target)) {
+        return;
+      }
+      setIsMenuOpen(false);
+    };
+    document.addEventListener('mousedown', closeOnOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick);
+    };
+  }, [isMenuOpen]);
+
+  useEffect(() => {
+    if (!canManageComment) {
+      setIsMenuOpen(false);
+      setIsEditing(false);
+      setEditedContent(comment.content);
+    }
+  }, [canManageComment, comment.content]);
+
+  const updateCommentInCache = (updater: (current: PostComment) => PostComment) => {
     if (!postId) {
       return;
     }
@@ -299,16 +344,61 @@ const PostCommentItem = ({ comment, postId }: { comment: PostComment; postId?: s
         if (!previous) {
           return previous;
         }
+        let updated = false;
         const pages = previous.pages.map((page) => ({
           ...page,
-          comments: page.comments.map((item) =>
-            item.commentId === comment.commentId
-              ? { ...item, likeCount: nextCount, liked: nextLiked }
-              : item,
-          ),
+          comments: page.comments.map((item) => {
+            if (item.commentId === comment.commentId) {
+              updated = true;
+              return updater(item);
+            }
+            return item;
+          }),
         }));
-        return { ...previous, pages };
+        return updated ? { ...previous, pages } : previous;
       },
+    );
+  };
+
+  const removeCommentFromCache = () => {
+    if (!postId) {
+      return;
+    }
+    queryClient.setQueryData<InfiniteData<PostCommentsPage> | undefined>(
+      ['post', postId, 'comments'],
+      (previous) => {
+        if (!previous) {
+          return previous;
+        }
+        let removed = false;
+        const pages = previous.pages.map((page) => ({
+          ...page,
+          comments: page.comments.filter((item) => {
+            if (item.commentId === comment.commentId) {
+              removed = true;
+              return false;
+            }
+            return true;
+          }),
+        }));
+        return removed ? { ...previous, pages } : previous;
+      },
+    );
+  };
+
+  const adjustPostCommentCount = (delta: number) => {
+    if (!postId) {
+      return;
+    }
+    queryClient.setQueryData<FeedPost | undefined>(
+      ['post', postId],
+      (previous) =>
+        previous
+          ? {
+              ...previous,
+              commentCount: Math.max(previous.commentCount + delta, 0),
+            }
+          : previous,
     );
   };
 
@@ -323,7 +413,7 @@ const PostCommentItem = ({ comment, postId }: { comment: PostComment; postId?: s
     onSuccess: (response, nextLiked) => {
       setLikeCount(response.likeCount);
       setLiked(nextLiked);
-      updateCachedComment(nextLiked, response.likeCount);
+      updateCommentInCache((current) => ({ ...current, likeCount: response.likeCount, liked: nextLiked }));
     },
     onError: (error, _vars, context) => {
       if (context) {
@@ -331,6 +421,42 @@ const PostCommentItem = ({ comment, postId }: { comment: PostComment; postId?: s
         setLikeCount(context.previousLikeCount);
       }
       toast.error(buildErrorMessage(error, '댓글 좋아요 처리에 실패했습니다.'));
+    },
+  });
+
+  const updateCommentMutation = useMutation<PostComment, unknown, string>({
+    mutationFn: async (content) => {
+      if (!postId) {
+        throw new Error('postId is required for updating comment');
+      }
+      return updatePostComment(postId, comment.commentId, content);
+    },
+    onSuccess: (updated) => {
+      setIsEditing(false);
+      setCurrentContent(updated.content);
+      setEditedContent(updated.content);
+      updateCommentInCache(() => updated);
+      toast.success('댓글을 수정했습니다.');
+    },
+    onError: (error) => {
+      toast.error(buildErrorMessage(error, '댓글을 수정하지 못했습니다.'));
+    },
+  });
+
+  const deleteCommentMutation = useMutation({
+    mutationFn: async () => {
+      if (!postId) {
+        throw new Error('postId is required for deleting comment');
+      }
+      return deletePostComment(postId, comment.commentId);
+    },
+    onSuccess: () => {
+      removeCommentFromCache();
+      adjustPostCommentCount(-1);
+      toast.success('댓글을 삭제했습니다.');
+    },
+    onError: (error) => {
+      toast.error(buildErrorMessage(error, '댓글을 삭제하지 못했습니다.'));
     },
   });
 
@@ -349,29 +475,155 @@ const PostCommentItem = ({ comment, postId }: { comment: PostComment; postId?: s
     toggleLikeMutation.mutate(!liked);
   };
 
+  const handleToggleMenu = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (!canManageComment) {
+      return;
+    }
+    setIsMenuOpen((prev) => !prev);
+  };
+
+  const handleEditSelection = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (!canManageComment) {
+      return;
+    }
+    setIsMenuOpen(false);
+    setEditedContent(currentContent);
+    setIsEditing(true);
+  };
+
+  const handleDeleteSelection = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (!canManageComment || deleteCommentMutation.isPending || updateCommentMutation.isPending) {
+      return;
+    }
+    setIsMenuOpen(false);
+    if (!window.confirm('댓글을 삭제하시겠습니까?')) {
+      return;
+    }
+    deleteCommentMutation.mutate();
+  };
+
+  const handleCancelEdit = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (updateCommentMutation.isPending) {
+      return;
+    }
+    setEditedContent(currentContent);
+    setIsEditing(false);
+  };
+
+  const handleSaveEdit = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (!canManageComment || updateCommentMutation.isPending) {
+      return;
+    }
+    const trimmed = editedContent.trim();
+    if (!trimmed) {
+      toast.error('댓글 내용을 입력하세요.');
+      return;
+    }
+    if (trimmed === currentContent.trim()) {
+      setIsEditing(false);
+      return;
+    }
+    updateCommentMutation.mutate(trimmed);
+  };
+
+  const isInteractive = !isEditing;
+  const containerClickProps = isInteractive
+    ? {
+        role: 'button' as const,
+        tabIndex: 0,
+        onClick: handleNavigate,
+        onKeyDown: (event: React.KeyboardEvent) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            handleNavigate();
+          }
+        },
+      }
+    : { role: undefined, tabIndex: -1 };
+
   return (
     <li
       className="post-comment"
-      role="button"
-      tabIndex={0}
-      onClick={handleNavigate}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          handleNavigate();
-        }
-      }}
+      {...containerClickProps}
     >
       <div className="post-comment__avatar">
         <img src={commenterAvatarUrl} alt={comment.commenter.nickname} loading="lazy" />
       </div>
       <div className="post-comment__body">
-        <div className="post-comment__meta">
-          <span className="post-comment__name">{comment.commenter.nickname}</span>
-          <span className="post-comment__username">@{comment.commenter.userId}</span>
-          <span className="post-comment__time">{formatRelativeTime(comment.commentedAt)}</span>
+        <div className="post-comment__header">
+          <div className="post-comment__meta">
+            <span className="post-comment__name">{comment.commenter.nickname}</span>
+            <span className="post-comment__username">@{comment.commenter.userId}</span>
+            <span className="post-comment__time">{formatRelativeTime(comment.commentedAt)}</span>
+          </div>
+          {canManageComment ? (
+            <div className="post-comment__menu-wrapper" ref={menuRef} onClick={(event) => event.stopPropagation()}>
+              <button
+                type="button"
+                className="post-comment__more-button"
+                onClick={handleToggleMenu}
+                ref={moreButtonRef}
+                aria-haspopup="menu"
+                aria-expanded={isMenuOpen}
+                aria-label="댓글 관리 메뉴"
+              >
+                <EllipsisVertical size={16} />
+              </button>
+              {isMenuOpen ? (
+                <div className="post-comment__menu" role="menu">
+                  <button type="button" role="menuitem" onClick={handleEditSelection}>
+                    수정
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="post-comment__menu-item--danger"
+                    onClick={handleDeleteSelection}
+                  >
+                    삭제
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
-        <p className="post-comment__content">{comment.content}</p>
+        {isEditing ? (
+          <div className="post-comment__editor" onClick={(event) => event.stopPropagation()}>
+            <textarea
+              value={editedContent}
+              onChange={(event) => setEditedContent(event.target.value)}
+              className="post-comment__editor-textarea"
+              rows={3}
+              maxLength={255}
+              disabled={updateCommentMutation.isPending}
+            />
+            <div className="post-comment__editor-actions">
+              <button
+                type="button"
+                className="post-comment__editor-btn"
+                onClick={handleCancelEdit}
+                disabled={updateCommentMutation.isPending}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                className="post-comment__editor-btn post-comment__editor-btn--primary"
+                onClick={handleSaveEdit}
+                disabled={updateCommentMutation.isPending}
+              >
+                {updateCommentMutation.isPending ? '저장 중...' : '저장'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="post-comment__content">{currentContent}</p>
+        )}
         <div className="post-comment__actions" onClick={(event) => event.stopPropagation()}>
           <button
             type="button"

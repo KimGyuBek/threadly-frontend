@@ -50,7 +50,7 @@ const mapImages = (raw: unknown): PostImage[] => {
     });
 };
 
-const mapComment = (raw: unknown): PostComment => {
+export const toPostComment = (raw: unknown): PostComment => {
   if (!raw || typeof raw !== 'object') {
     throw new Error('Invalid comment payload');
   }
@@ -115,7 +115,7 @@ export const toFeedResponse = (payload: unknown): FeedResponse => {
 
 export const toPostCommentsPage = (payload: unknown): PostCommentsPage => {
   const data = unwrapThreadlyResponse<Record<string, unknown>>(payload);
-  const content = Array.isArray(data['content']) ? data['content'].map(mapComment) : [];
+  const content = Array.isArray(data['content']) ? data['content'].map(toPostComment) : [];
   const nextCursorRaw = (data['nextCursor'] ?? data['next_cursor']) as Record<string, unknown> | undefined;
   let nextCursor: { cursorTimestamp: string | null; cursorId: string | null } | null = null;
   if (nextCursorRaw && typeof nextCursorRaw === 'object') {

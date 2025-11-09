@@ -8,7 +8,7 @@ import type {
   PostComment,
   UpdatePostResult,
 } from '../types';
-import { toFeedResponse, toFeedPost, toPostCommentsPage } from '@/utils/postMapper';
+import { toFeedResponse, toFeedPost, toPostCommentsPage, toPostComment } from '@/utils/postMapper';
 import type { AxiosRequestConfig } from 'axios';
 import { unwrapThreadlyResponse } from '@/utils/api';
 import { normalizeProfileImageUrl } from '@/utils/profileImage';
@@ -216,4 +216,18 @@ export const updatePost = async (postId: string, content: string): Promise<Updat
 
 export const deletePost = async (postId: string): Promise<void> => {
   await threadlyApi.delete(`/api/posts/${postId}`);
+};
+
+export const updatePostComment = async (
+  postId: string,
+  commentId: string,
+  content: string,
+): Promise<PostComment> => {
+  const response = await threadlyApi.patch(`/api/posts/${postId}/comments/${commentId}`, { content });
+  const data = unwrapThreadlyResponse<unknown>(response.data);
+  return toPostComment(data);
+};
+
+export const deletePostComment = async (postId: string, commentId: string): Promise<void> => {
+  await threadlyApi.delete(`/api/posts/${postId}/comments/${commentId}`);
 };
