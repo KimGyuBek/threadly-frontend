@@ -11,7 +11,7 @@ import { buildErrorMessage } from '@/utils/errorMessage';
 import { isAxiosError } from 'axios';
 import { isThreadlyApiError } from '@/utils/threadlyError';
 import { getProfileImageUrl } from '@/utils/profileImage';
-import { useImageViewer } from '@/providers/ImageViewerProvider';
+import { useImageViewer } from '@/providers/useImageViewer';
 
 const ProfilePage = () => {
   const navigate = useNavigate();

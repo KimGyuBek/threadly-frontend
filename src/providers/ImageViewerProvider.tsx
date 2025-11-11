@@ -1,19 +1,13 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-interface ImageViewerContextValue {
-  openImage: (url: string, alt?: string) => void;
-  openImages: (urls: string[], startIndex?: number, alt?: string) => void;
-  closeImage: () => void;
-}
+import { ImageViewerContext } from './imageViewerContext';
 
 interface ImageViewerState {
   images: string[];
   currentIndex: number;
   alt?: string;
 }
-
-const ImageViewerContext = createContext<ImageViewerContextValue | undefined>(undefined);
 
 export const ImageViewerProvider = ({ children }: { children: React.ReactNode }) => {
   const [viewerState, setViewerState] = useState<ImageViewerState | null>(null);
@@ -139,12 +133,4 @@ export const ImageViewerProvider = ({ children }: { children: React.ReactNode })
         : null}
     </ImageViewerContext.Provider>
   );
-};
-
-export const useImageViewer = (): ImageViewerContextValue => {
-  const context = useContext(ImageViewerContext);
-  if (!context) {
-    throw new Error('useImageViewer must be used within ImageViewerProvider');
-  }
-  return context;
 };

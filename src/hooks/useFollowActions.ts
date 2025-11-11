@@ -7,7 +7,7 @@ import {
   unfollowUser,
   cancelFollowRequest,
 } from '@/features/profile/api/profileApi';
-import type { FollowStatus } from '@/features/profile/types';
+import type { FollowStatus, UserProfile } from '@/features/profile/types';
 import { buildErrorMessage } from '@/utils/errorMessage';
 
 interface UseFollowActionsParams {
@@ -28,6 +28,29 @@ export const useFollowActions = ({
     setStatus(followStatus);
   }, [followStatus]);
 
+  const followBasicQueryKey = useMemo(() => ['user', userId, 'follow-basic'], [userId]);
+
+  const updateFollowBasicCache = useCallback(
+    (nextStatus: FollowStatus) => {
+      if (!userId) {
+        return;
+      }
+      queryClient.setQueryData<UserProfile | undefined>(followBasicQueryKey, (cachedProfile) => {
+        if (!cachedProfile) {
+          return cachedProfile;
+        }
+        if (cachedProfile.followStatus === nextStatus) {
+          return cachedProfile;
+        }
+        return {
+          ...cachedProfile,
+          followStatus: nextStatus,
+        };
+      });
+    },
+    [followBasicQueryKey, queryClient, userId],
+  );
+
   const followMutation = useMutation<FollowStatus, unknown, FollowStatus, FollowStatus>({
     mutationFn: async (currentStatus) => {
       if (!userId) {
@@ -45,20 +68,24 @@ export const useFollowActions = ({
       return newStatus;
     },
     onMutate: async (currentStatus) => {
-      setStatus((prev) => {
-        if (prev === 'APPROVED' || prev === 'PENDING') {
-          return 'NONE';
-        }
-        return 'PENDING';
-      });
+      const optimisticStatus =
+        currentStatus === 'APPROVED' || currentStatus === 'PENDING' ? 'NONE' : 'PENDING';
+      setStatus(optimisticStatus);
+      updateFollowBasicCache(optimisticStatus);
       return currentStatus;
     },
     onSuccess: (newStatus) => {
       setStatus(newStatus);
+      updateFollowBasicCache(newStatus);
+      if (userId) {
+        queryClient.invalidateQueries({ queryKey: followBasicQueryKey });
+      }
       invalidateKeys.forEach(({ queryKey }) => queryClient.invalidateQueries({ queryKey }));
     },
     onError: (error, _vars, context) => {
-      setStatus(context ?? followStatus);
+      const fallbackStatus = context ?? followStatus;
+      setStatus(fallbackStatus);
+      updateFollowBasicCache(fallbackStatus);
       toast.error(buildErrorMessage(error, '팔로우 처리에 실패했습니다.'));
     },
   });

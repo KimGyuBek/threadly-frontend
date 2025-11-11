@@ -16,7 +16,7 @@ import { useAuthStore } from '@/store/authStore';
 import { isAxiosError } from 'axios';
 import { isThreadlyApiError } from '@/utils/threadlyError';
 import { getProfileImageUrl } from '@/utils/profileImage';
-import { useImageViewer } from '@/providers/ImageViewerProvider';
+import { useImageViewer } from '@/providers/useImageViewer';
 
 const UserProfilePage = () => {
   const { userId } = useParams<{ userId: string }>();

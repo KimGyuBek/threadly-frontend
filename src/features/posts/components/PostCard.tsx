@@ -18,7 +18,7 @@ import {
 import { buildErrorMessage } from '@/utils/errorMessage';
 import { FollowButton } from '@/features/profile/components/FollowButton';
 import { getProfileImageUrl } from '@/utils/profileImage';
-import { useImageViewer } from '@/providers/ImageViewerProvider';
+import { useImageViewer } from '@/providers/useImageViewer';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 
 const TARGET_IMAGE_ASPECT_RATIO = 3 / 4;
