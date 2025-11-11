@@ -21,9 +21,6 @@ import { getProfileImageUrl } from '@/utils/profileImage';
 import { useImageViewer } from '@/providers/useImageViewer';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 
-const TARGET_IMAGE_ASPECT_RATIO = 3 / 4;
-const IMAGE_RATIO_TOLERANCE = 0.05;
-
 interface Props {
   post: FeedPost;
   disableNavigation?: boolean;
@@ -56,7 +53,6 @@ export const PostCard = ({
   const [editedContent, setEditedContent] = useState(post.content);
   const [isEditing, setIsEditing] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [imageFitMap, setImageFitMap] = useState<Record<string, 'cover' | 'letterbox'>>({});
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showIndicators, setShowIndicators] = useState(false);
   const indicatorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -71,7 +67,6 @@ export const PostCard = ({
       setCurrentContent(post.content);
       setEditedContent(post.content);
     }
-    setImageFitMap({});
     setCurrentImageIndex(0);
     setShowIndicators(false);
     if (indicatorTimeoutRef.current) {
@@ -203,22 +198,6 @@ export const PostCard = ({
     }
   }, [viewerUserId, authorId, isEditing, currentContent]);
 
-  const handleImageLoad = (imageKey: string) => (event: React.SyntheticEvent<HTMLImageElement>) => {
-    const target = event.currentTarget;
-    if (!target?.naturalWidth || !target?.naturalHeight) {
-      return;
-    }
-    const ratio = target.naturalWidth / target.naturalHeight;
-    const nextFit: 'cover' | 'letterbox' =
-      Math.abs(ratio - TARGET_IMAGE_ASPECT_RATIO) <= IMAGE_RATIO_TOLERANCE ? 'cover' : 'letterbox';
-    setImageFitMap((prev) => {
-      if (prev[imageKey] === nextFit) {
-        return prev;
-      }
-      return { ...prev, [imageKey]: nextFit };
-    });
-  };
-
   const handleAuthorClick = (event: React.MouseEvent) => {
     if (!isAuthorNavigable) {
       return;
@@ -261,7 +240,7 @@ export const PostCard = ({
 
   const imageUrls = images.map((image) => image.imageUrl).filter((url) => Boolean(url));
 
-  const shouldShowCommentPreview = !disableCommentPreview && isMobile && post.commentCount > 0;
+  const shouldShowCommentPreview = !disableCommentPreview && post.commentCount > 0;
   const {
     data: previewData,
     isLoading: isPreviewLoading,
@@ -495,17 +474,13 @@ export const PostCard = ({
           >
             {images.map((image, index) => {
               const imageKey = `${image.imageId}-${image.imageOrder}`;
-              const isLetterbox = imageFitMap[imageKey] === 'letterbox';
               return (
                 <div key={imageKey} className="post-card__carousel-slide">
-                  <div
-                    className={`post-card__image-wrapper ${isLetterbox ? 'post-card__image-wrapper--letterbox' : 'post-card__image-wrapper--cover'}`}
-                  >
+                  <div className="post-card__image-wrapper">
                     <img
                       src={image.imageUrl}
                       alt="post"
                       loading="lazy"
-                      onLoad={handleImageLoad(imageKey)}
                       onClick={handleImagePreview(index)}
                     />
                   </div>
