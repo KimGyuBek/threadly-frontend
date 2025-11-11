@@ -19,7 +19,6 @@ import { buildErrorMessage } from '@/utils/errorMessage';
 import { FollowButton } from '@/features/profile/components/FollowButton';
 import { getProfileImageUrl } from '@/utils/profileImage';
 import { useImageViewer } from '@/providers/useImageViewer';
-import { useIsMobile } from '@/hooks/useMediaQuery';
 
 interface Props {
   post: FeedPost;
@@ -58,7 +57,6 @@ export const PostCard = ({
   const indicatorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const moreButtonRef = useRef<HTMLButtonElement | null>(null);
-  const isMobile = useIsMobile();
 
   useEffect(() => {
     setLiked(post.liked);
