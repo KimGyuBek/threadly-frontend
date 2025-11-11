@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { isAxiosError } from 'axios';
 import { toast } from 'react-toastify';
 
 import {
@@ -13,8 +12,9 @@ import {
 } from '@/features/profile/api/profileApi';
 import { useAuthStore } from '@/store/authStore';
 import { buildErrorMessage } from '@/utils/errorMessage';
-import { isThreadlyApiError } from '@/utils/threadlyError';
 import { getProfileImageUrl, normalizeProfileImageUrl } from '@/utils/profileImage';
+import { decodeJwt } from '@/utils/jwt';
+import { isProfileSetupRequiredError } from '@/utils/profileSetup';
 
 const genders = [
   { value: 'MALE', label: '남성' },
@@ -31,26 +31,19 @@ interface ProfileImageState {
   imageUrl?: string;
 }
 
-const isProfileSetupRequiredError = (error: unknown): boolean => {
-  if (isThreadlyApiError(error)) {
-    return (
-      error.code === 'USER_PROFILE_NOT_SET' ||
-      error.code === 'USER_PROFILE_NOT_EXISTS' ||
-      error.code === 'USER_PROFILE_NOT_FOUND' ||
-      error.status === 404
-    );
-  }
-  if (isAxiosError(error)) {
-    const payload = error.response?.data as { code?: string } | undefined;
-    return error.response?.status === 404 || payload?.code === 'USER_PROFILE_NOT_SET';
-  }
-  return false;
-};
-
 const ProfileSetupPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const tokens = useAuthStore((state) => state.tokens);
   const setTokens = useAuthStore((state) => state.setTokens);
+  const accessToken = tokens?.accessToken;
+  const userStatusType = useMemo(() => {
+    if (!accessToken) {
+      return null;
+    }
+    return decodeJwt(accessToken)?.userStatusType ?? null;
+  }, [accessToken]);
+  const skipProfileFetch = userStatusType === 'INCOMPLETE_PROFILE';
 
   const [mode, setMode] = useState<ProfileMode>('register');
   const [prefilled, setPrefilled] = useState(false);
@@ -70,10 +63,16 @@ const ProfileSetupPage = () => {
     queryKey: ['me', 'profile', 'setup'],
     queryFn: fetchMyProfile,
     retry: false,
+    enabled: !skipProfileFetch,
   });
 
   useEffect(() => {
     if (prefilled) {
+      return;
+    }
+    if (skipProfileFetch) {
+      setMode('register');
+      setPrefilled(true);
       return;
     }
     if (profileQuery.isSuccess) {
@@ -97,7 +96,7 @@ const ProfileSetupPage = () => {
       setMode('register');
       setPrefilled(true);
     }
-  }, [prefilled, profileQuery.data, profileQuery.error, profileQuery.isError, profileQuery.isSuccess]);
+  }, [prefilled, profileQuery.data, profileQuery.error, profileQuery.isError, profileQuery.isSuccess, skipProfileFetch]);
 
   const registerMutation = useMutation({
     mutationFn: () =>
@@ -196,11 +195,11 @@ const ProfileSetupPage = () => {
     }
   };
 
-  const isLoadingProfile = profileQuery.isPending && !prefilled;
+  const isLoadingProfile = !skipProfileFetch && profileQuery.isPending && !prefilled;
   const allowRegisterWithoutProfile =
-    profileQuery.isError && isProfileSetupRequiredError(profileQuery.error);
+    skipProfileFetch || (profileQuery.isError && isProfileSetupRequiredError(profileQuery.error));
 
-  const fatalProfileError = profileQuery.isError && !allowRegisterWithoutProfile;
+  const fatalProfileError = !skipProfileFetch && profileQuery.isError && !allowRegisterWithoutProfile;
 
   const imagePreview = useMemo(() => getProfileImageUrl(profileImage.imageUrl), [profileImage.imageUrl]);
 

@@ -7,6 +7,7 @@ import type { AuthTokens } from '@/types/auth';
 import { getAccessToken, getRefreshToken, useAuthStore } from '@/store/authStore';
 import { logError, logRequest, logResponse } from '@/utils/httpLogger';
 import { ThreadlyApiError, isThreadlyApiError } from '@/utils/threadlyError';
+import { isProfileSetupRequiredError, redirectToProfileSetupPage } from '@/utils/profileSetup';
 
 const RETRY_FLAG = Symbol('retry');
 const FATAL_AUTH_ERROR_CODES = new Set(['TLY2006', 'TOKEN_INVALID', 'AUTHENTICATION_ERROR']);
@@ -173,6 +174,10 @@ const setupInterceptors = (instance: AxiosInstance): void => {
     (response) => handleThreadlyResponse(response),
     async (error) => {
       logError(error);
+      if (isProfileSetupRequiredError(error)) {
+        redirectToProfileSetupPage();
+        return Promise.reject(normalizeError(error));
+      }
       const originalRequest = error.config as InternalAxiosRequestConfig & {
         [RETRY_FLAG]?: boolean;
         skipAuthRetry?: boolean;
@@ -244,6 +249,10 @@ authApiClient.interceptors.response.use(
   (response) => handleThreadlyResponse(response),
   (error) => {
     logError(error);
+    if (isProfileSetupRequiredError(error)) {
+      redirectToProfileSetupPage();
+      return Promise.reject(normalizeError(error));
+    }
     return Promise.reject(normalizeError(error));
   },
 );
