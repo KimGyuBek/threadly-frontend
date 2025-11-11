@@ -19,7 +19,7 @@ jobs:
           node-version: 20
 
       - name: 의존성 설치
-        uses: npm ci
+        run: npm ci
 
       - name: Build
         run : npm run build
