@@ -18,7 +18,7 @@ jobs:
           WORKFLOW_NAME="${{ github.event.workflow_run.name }}"
           WORKFLOW_URL="${{ github.event.workflow_run.html_url }}"
           
-          message="⚠️ 워크플로우 \"$WORKFLOW_NAME\" 이(가) 실패했습니다.
+          message="[threadly-front]\n⚠️ 워크플로우 \"$WORKFLOW_NAME\" 이(가) 실패했습니다.
           🔗 <$WORKFLOW_URL|실패 내역 보러가기>"
           
            json=$(jq -nc --arg msg "$message" '{ text: $msg }')
