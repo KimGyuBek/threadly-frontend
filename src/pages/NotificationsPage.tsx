@@ -12,11 +12,14 @@ import {
   markNotificationRead,
 } from '@/api/notifications';
 import type { FetchNotificationsParams } from '@/api/notifications';
+import { BouncingDotsLoader } from '@/components/BouncingDotsLoader';
+import { NetworkErrorFallback } from '@/components/NetworkErrorFallback';
 import { NotificationListItem } from '@/components/NotificationListItem';
 import { useNotificationSocket } from '@/hooks/useNotificationSocket';
 import { buildErrorMessage } from '@/utils/errorMessage';
 import type { NotificationItem, NotificationListResponse, NotificationWebSocketMessage } from '@/types/notifications';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
+import { isNetworkUnavailableError } from '@/utils/networkError';
 
 const NOTIFICATION_QUERY_KEY = ['notifications'];
 
@@ -222,14 +225,20 @@ const NotificationsPage = () => {
       </header>
 
       {notificationsQuery.isLoading ? (
-        <div className="notifications-empty">알림을 불러오는 중입니다...</div>
-      ) : notificationsQuery.isError ? (
         <div className="notifications-empty">
-          <p>{queryErrorMessage}</p>
-          <button type="button" className="btn" onClick={() => notificationsQuery.refetch()}>
-            다시 시도
-          </button>
+          <BouncingDotsLoader message="알림을 불러오는 중입니다..." />
         </div>
+      ) : notificationsQuery.isError ? (
+        isNetworkUnavailableError(notificationsQuery.error) ? (
+          <NetworkErrorFallback className="notifications-empty" />
+        ) : (
+          <div className="notifications-empty">
+            <p>{queryErrorMessage}</p>
+            <button type="button" className="btn" onClick={() => notificationsQuery.refetch()}>
+              다시 시도
+            </button>
+          </div>
+        )
       ) : notifications.length === 0 ? (
         <div className="notifications-empty">표시할 알림이 없습니다.</div>
       ) : (
@@ -248,7 +257,11 @@ const NotificationsPage = () => {
 
       {notifications.length > 0 ? (
         <div ref={loadMoreRef} className="notifications-footer">
-          {notificationsQuery.isFetchingNextPage ? <span className="feed-loading">불러오는 중...</span> : null}
+          {notificationsQuery.isFetchingNextPage ? (
+            <span className="feed-loading">
+              <BouncingDotsLoader size="sm" message="불러오는 중..." />
+            </span>
+          ) : null}
           {!notificationsQuery.hasNextPage ? (
             <span className="feed-end">모든 알림을 확인했습니다.</span>
           ) : null}

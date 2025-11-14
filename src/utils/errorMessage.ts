@@ -1,8 +1,12 @@
 import { isAxiosError } from 'axios';
 
+import { isNetworkUnavailableError, NETWORK_UNAVAILABLE_MESSAGE } from './networkError';
 import { isThreadlyApiError } from './threadlyError';
 
 export const buildErrorMessage = (error: unknown, fallback: string): string => {
+  if (isNetworkUnavailableError(error)) {
+    return NETWORK_UNAVAILABLE_MESSAGE;
+  }
   if (isThreadlyApiError(error)) {
     return error.code ? `${error.message} (${error.code})` : error.message;
   }

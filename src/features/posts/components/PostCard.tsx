@@ -6,6 +6,7 @@ import { Heart, MessageSquare, Eye, ChevronLeft, ChevronRight, EllipsisVertical 
 import { toast } from 'react-toastify';
 
 import type { FeedPost } from '../types';
+import { BouncingDotsLoader } from '@/components/BouncingDotsLoader';
 import { formatRelativeTime } from '@/utils/date';
 import {
   deletePost,
@@ -539,7 +540,11 @@ export const PostCard = ({
                 ))
               : (
                   <li className="post-comments-preview__item post-comments-preview__item--placeholder">
-                    {isPreviewLoading ? '댓글을 불러오는 중입니다...' : '댓글을 불러오지 못했습니다.'}
+                    {isPreviewLoading ? (
+                      <BouncingDotsLoader size="sm" message="댓글을 불러오는 중입니다..." />
+                    ) : (
+                      '댓글을 불러오지 못했습니다.'
+                    )}
                   </li>
                 )}
           </ul>

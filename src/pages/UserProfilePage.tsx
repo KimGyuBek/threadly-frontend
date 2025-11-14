@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
+import { BouncingDotsLoader } from '@/components/BouncingDotsLoader';
+import { NetworkErrorFallback } from '@/components/NetworkErrorFallback';
 import {
   fetchUserFollowStats,
   fetchUserProfile,
@@ -17,6 +19,7 @@ import { isAxiosError } from 'axios';
 import { isThreadlyApiError } from '@/utils/threadlyError';
 import { getProfileImageUrl } from '@/utils/profileImage';
 import { useImageViewer } from '@/providers/useImageViewer';
+import { isNetworkUnavailableError } from '@/utils/networkError';
 
 const UserProfilePage = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -29,6 +32,9 @@ const UserProfilePage = () => {
     queryFn: () => fetchUserProfile(userId ?? ''),
     enabled: Boolean(userId),
     retry: (count, error) => {
+      if (isNetworkUnavailableError(error)) {
+        return false;
+      }
       const message = buildErrorMessage(error, '프로필을 불러오지 못했습니다.');
       if (count === 1) {
         toast.error(message);
@@ -86,7 +92,15 @@ const UserProfilePage = () => {
   const closeList = () => setActiveList(null);
 
   if (profileQuery.isLoading) {
-    return <div className="profile-container">프로필을 불러오는 중입니다...</div>;
+    return (
+      <div className="profile-container">
+        <BouncingDotsLoader message="프로필을 불러오는 중입니다..." />
+      </div>
+    );
+  }
+
+  if (profileQuery.isError && isNetworkUnavailableError(profileQuery.error)) {
+    return <NetworkErrorFallback />;
   }
 
   if (!profile) {

@@ -3,13 +3,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
+import { BouncingDotsLoader } from '@/components/BouncingDotsLoader';
 import { deleteNotification, fetchNotificationDetail, markNotificationRead } from '@/api/notifications';
+import { NetworkErrorFallback } from '@/components/NetworkErrorFallback';
 import { buildNotificationText } from '@/utils/notificationMessage';
 import type { NotificationItem } from '@/types/notifications';
 import { formatRelativeTime } from '@/utils/date';
 import clsx from 'clsx';
 import { buildErrorMessage } from '@/utils/errorMessage';
 import { getProfileImageUrl } from '@/utils/profileImage';
+import { isNetworkUnavailableError } from '@/utils/networkError';
 
 const NotificationDetailPage = () => {
   const { eventId } = useParams<{ eventId: string }>();
@@ -116,7 +119,19 @@ const NotificationDetailPage = () => {
   };
 
   if (detailQuery.isLoading) {
-    return <div className="notifications-layout">알림을 불러오는 중입니다...</div>;
+    return (
+      <div className="notifications-layout">
+        <BouncingDotsLoader message="알림을 불러오는 중입니다..." />
+      </div>
+    );
+  }
+
+  if (detailQuery.isError && isNetworkUnavailableError(detailQuery.error)) {
+    return (
+      <div className="notifications-layout">
+        <NetworkErrorFallback className="notifications-empty" />
+      </div>
+    );
   }
 
   if (detailQuery.isError || !detailQuery.data) {

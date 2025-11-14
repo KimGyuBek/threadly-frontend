@@ -4,6 +4,8 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 
+import { BouncingDotsLoader } from '@/components/BouncingDotsLoader';
+import { NetworkErrorFallback } from '@/components/NetworkErrorFallback';
 import { fetchFeed } from '@/features/posts/api/postsApi';
 import type { FeedResponse, FeedPost } from '@/features/posts/types';
 import { PostCard } from '@/features/posts/components/PostCard';
@@ -12,6 +14,7 @@ import { isThreadlyApiError } from '@/utils/threadlyError';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useMyProfileQuery } from '@/hooks/useMyProfile';
+import { isNetworkUnavailableError, NETWORK_UNAVAILABLE_MESSAGE } from '@/utils/networkError';
 
 const FEED_QUERY_KEY = ['feed'];
 
@@ -33,6 +36,10 @@ const HomeFeedPage = () => {
       return undefined;
     },
     retry: (failureCount, error) => {
+      if (isNetworkUnavailableError(error)) {
+        toast.error(NETWORK_UNAVAILABLE_MESSAGE);
+        return false;
+      }
       const message = buildErrorMessage(error, '피드를 불러오지 못했습니다.');
       if (failureCount === 1) {
         toast.error(message);
@@ -94,14 +101,20 @@ const HomeFeedPage = () => {
     <div className="feed-container">
       <h2 className="section-title">피드</h2>
       {feedQuery.isLoading ? (
-        <div className="feed-placeholder">피드를 불러오는 중입니다...</div>
-      ) : feedQuery.isError ? (
-        <div className="feed-placeholder feed-placeholder--error">
-          <p>{errorMessage}</p>
-          <button type="button" className="btn" onClick={() => feedQuery.refetch()}>
-            다시 시도
-          </button>
+        <div className="feed-placeholder">
+          <BouncingDotsLoader message="피드를 불러오는 중입니다..." />
         </div>
+      ) : feedQuery.isError ? (
+        isNetworkUnavailableError(feedQuery.error) ? (
+          <NetworkErrorFallback />
+        ) : (
+          <div className="feed-placeholder feed-placeholder--error">
+            <p>{errorMessage}</p>
+            <button type="button" className="btn" onClick={() => feedQuery.refetch()}>
+              다시 시도
+            </button>
+          </div>
+        )
       ) : posts.length === 0 ? (
         <div className="feed-placeholder">표시할 게시글이 없습니다.</div>
       ) : (
@@ -117,7 +130,11 @@ const HomeFeedPage = () => {
         </div>
       )}
       <div ref={loadMoreRef} className="feed-footer">
-        {feedQuery.isFetchingNextPage ? <span className="feed-loading">불러오는 중...</span> : null}
+        {feedQuery.isFetchingNextPage ? (
+          <span className="feed-loading">
+            <BouncingDotsLoader size="sm" message="불러오는 중..." />
+          </span>
+        ) : null}
         {!feedQuery.hasNextPage ? <span className="feed-end">모든 게시글을 확인했습니다.</span> : null}
       </div>
     </div>

@@ -4,6 +4,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { isAxiosError } from 'axios';
 
+import { BouncingDotsLoader } from '@/components/BouncingDotsLoader';
+import { NetworkErrorFallback } from '@/components/NetworkErrorFallback';
 import {
   fetchPostDetail,
   fetchPostComments,
@@ -23,6 +25,7 @@ import { useMyProfileQuery } from '@/hooks/useMyProfile';
 import { EllipsisVertical, Heart } from 'lucide-react';
 import { getProfileImageUrl } from '@/utils/profileImage';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
+import { isNetworkUnavailableError } from '@/utils/networkError';
 
 const COMMENTS_PAGE_SIZE = 10;
 
@@ -37,6 +40,9 @@ const PostDetailPage = () => {
     queryFn: () => fetchPostDetail(postId ?? ''),
     enabled: Boolean(postId),
     retry: (count, error) => {
+      if (isNetworkUnavailableError(error)) {
+        return false;
+      }
       const message = buildErrorMessage(error, '게시글을 불러오지 못했습니다.');
       if (count === 1) {
         toast.error(message);
@@ -191,7 +197,15 @@ const PostDetailPage = () => {
   };
 
   if (detailQuery.isLoading) {
-    return <div className="feed-placeholder">게시글을 불러오는 중입니다...</div>;
+    return (
+      <div className="feed-placeholder">
+        <BouncingDotsLoader message="게시글을 불러오는 중입니다..." />
+      </div>
+    );
+  }
+
+  if (detailQuery.isError && isNetworkUnavailableError(detailQuery.error)) {
+    return <NetworkErrorFallback />;
   }
 
   if (detailQuery.isError || !detailQuery.data) {
@@ -230,15 +244,24 @@ const PostDetailPage = () => {
         <section className="post-comments" ref={commentsSectionRef}>
           <h3>댓글 {commentCount.toLocaleString()}</h3>
           {commentsQuery.isLoading ? (
-            <div className="post-comments__placeholder">댓글을 불러오는 중입니다...</div>
+            <div className="post-comments__placeholder">
+              <BouncingDotsLoader message="댓글을 불러오는 중입니다..." />
+            </div>
           ) : null}
           {commentsQuery.isError && !commentsQuery.isLoading ? (
-            <div className="post-comments__placeholder">
-              <p>댓글을 불러오지 못했습니다.</p>
-              <button type="button" className="btn btn--secondary" onClick={() => commentsQuery.refetch()}>
-                다시 시도
-              </button>
-            </div>
+            isNetworkUnavailableError(commentsQuery.error) ? (
+              <NetworkErrorFallback
+                className="post-comments__placeholder"
+                buttonClassName="btn btn--secondary"
+              />
+            ) : (
+              <div className="post-comments__placeholder">
+                <p>댓글을 불러오지 못했습니다.</p>
+                <button type="button" className="btn btn--secondary" onClick={() => commentsQuery.refetch()}>
+                  다시 시도
+                </button>
+              </div>
+            )
           ) : null}
           {hasUnauthorizedComments && !commentsQuery.isLoading ? (
             <div className="post-comments__placeholder">댓글을 보려면 로그인하세요.</div>
@@ -261,7 +284,11 @@ const PostDetailPage = () => {
           ) : null}
           {!commentsQuery.isLoading && !hasUnauthorizedComments && (comments.length > 0 || hasNextPage) ? (
             <div ref={loadMoreRef} className="post-comments__sentinel">
-              {isFetchingNextPage ? <span>불러오는 중...</span> : null}
+              {isFetchingNextPage ? (
+                <span>
+                  <BouncingDotsLoader size="sm" message="불러오는 중..." />
+                </span>
+              ) : null}
               {!hasNextPage && comments.length > 0 ? <span>모든 댓글을 확인했습니다.</span> : null}
             </div>
           ) : null}

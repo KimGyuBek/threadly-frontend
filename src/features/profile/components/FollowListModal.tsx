@@ -3,12 +3,15 @@ import type { MouseEvent } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
+import { BouncingDotsLoader } from '@/components/BouncingDotsLoader';
+import { NetworkErrorFallback } from '@/components/NetworkErrorFallback';
 import { fetchFollowersList, fetchFollowingsList } from '@/features/profile/api/profileApi';
 import type { FollowListResult, FollowListUser } from '@/features/profile/types';
 import { FollowButton } from '@/features/profile/components/FollowButton';
 import { useAuthStore } from '@/store/authStore';
 import { getProfileImageUrl } from '@/utils/profileImage';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
+import { isNetworkUnavailableError } from '@/utils/networkError';
 
 export type FollowListType = 'followers' | 'followings';
 
@@ -156,14 +159,25 @@ const FollowListModal = ({ userId, type, isOpen, onClose }: FollowListModalProps
           </button>
         </div>
         <div className="follow-list-content">
-          {isInitialLoading && <div className="follow-list-placeholder">목록을 불러오는 중입니다...</div>}
-          {isError && (
+          {isInitialLoading && (
             <div className="follow-list-placeholder">
-              <p>목록을 불러오지 못했습니다.</p>
-              <button type="button" className="btn btn--secondary" onClick={() => listQuery.refetch()}>
-                다시 시도
-              </button>
+              <BouncingDotsLoader message="목록을 불러오는 중입니다..." />
             </div>
+          )}
+          {isError && (
+            isNetworkUnavailableError(listQuery.error) ? (
+              <NetworkErrorFallback
+                className="follow-list-placeholder"
+                buttonClassName="btn btn--secondary"
+              />
+            ) : (
+              <div className="follow-list-placeholder">
+                <p>목록을 불러오지 못했습니다.</p>
+                <button type="button" className="btn btn--secondary" onClick={() => listQuery.refetch()}>
+                  다시 시도
+                </button>
+              </div>
+            )
           )}
           {!isInitialLoading && !isError && users.length === 0 && (
             <div className="follow-list-empty">표시할 사용자가 없습니다.</div>
@@ -224,7 +238,11 @@ const FollowListModal = ({ userId, type, isOpen, onClose }: FollowListModalProps
         </div>
           {!isInitialLoading && !isError && users.length > 0 && (
             <div ref={loadMoreRef} className="follow-list-footer">
-              {isFetchingNextPage ? <span>불러오는 중...</span> : null}
+              {isFetchingNextPage ? (
+                <span>
+                  <BouncingDotsLoader size="sm" message="불러오는 중..." />
+                </span>
+              ) : null}
               {!hasNextPage ? <span>모든 사용자를 확인했습니다.</span> : null}
             </div>
           )}

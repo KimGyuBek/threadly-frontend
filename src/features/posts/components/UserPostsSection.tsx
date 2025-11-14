@@ -2,12 +2,15 @@ import { useCallback, useMemo, useRef } from 'react';
 import type { InfiniteData } from '@tanstack/react-query';
 import { useInfiniteQuery } from '@tanstack/react-query';
 
+import { BouncingDotsLoader } from '@/components/BouncingDotsLoader';
+import { NetworkErrorFallback } from '@/components/NetworkErrorFallback';
 import { fetchUserPosts } from '@/features/posts/api/postsApi';
 import type { FeedPost, FeedResponse } from '@/features/posts/types';
 import { PostCard } from '@/features/posts/components/PostCard';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { buildErrorMessage } from '@/utils/errorMessage';
 import { isThreadlyApiError } from '@/utils/threadlyError';
+import { isNetworkUnavailableError } from '@/utils/networkError';
 
 interface UserPostsSectionProps {
   userId?: string;
@@ -55,7 +58,12 @@ export const UserPostsSection = ({
       return undefined;
     },
     enabled: hasUserId,
-    retry: 1,
+    retry: (failureCount, error) => {
+      if (isNetworkUnavailableError(error)) {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
 
   const posts = useMemo<FeedPost[]>(() => {
@@ -107,16 +115,22 @@ export const UserPostsSection = ({
     <div className="profile-section" data-testid="user-posts-section">
       <h3>{title}</h3>
       {userPostsQuery.isLoading ? (
-        <div className="feed-placeholder">게시글을 불러오는 중입니다...</div>
+        <div className="feed-placeholder">
+          <BouncingDotsLoader message="게시글을 불러오는 중입니다..." />
+        </div>
       ) : forbiddenErrorMessage ? (
         <div className="feed-placeholder feed-placeholder--error">{forbiddenErrorMessage}</div>
       ) : userPostsQuery.isError ? (
-        <div className="feed-placeholder feed-placeholder--error">
-          <p>{errorMessage}</p>
-          <button type="button" className="btn" onClick={() => userPostsQuery.refetch()}>
-            다시 시도
-          </button>
-        </div>
+        isNetworkUnavailableError(userPostsQuery.error) ? (
+          <NetworkErrorFallback />
+        ) : (
+          <div className="feed-placeholder feed-placeholder--error">
+            <p>{errorMessage}</p>
+            <button type="button" className="btn" onClick={() => userPostsQuery.refetch()}>
+              다시 시도
+            </button>
+          </div>
+        )
       ) : posts.length === 0 ? (
         <div className="feed-placeholder">{emptyMessage}</div>
       ) : (
@@ -134,7 +148,9 @@ export const UserPostsSection = ({
       )}
       <div ref={loadMoreRef} className="feed-footer">
         {userPostsQuery.isFetchingNextPage ? (
-          <span className="feed-loading">불러오는 중...</span>
+          <span className="feed-loading">
+            <BouncingDotsLoader size="sm" message="불러오는 중..." />
+          </span>
         ) : null}
         {!userPostsQuery.hasNextPage && posts.length > 0 ? (
           <span className="feed-end">모든 게시글을 확인했습니다.</span>

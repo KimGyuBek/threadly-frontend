@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
+import { BouncingDotsLoader } from '@/components/BouncingDotsLoader';
+import { NetworkErrorFallback } from '@/components/NetworkErrorFallback';
 import { searchPosts } from '@/features/posts/api/postsApi';
 import { PostCard } from '@/features/posts/components/PostCard';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -9,6 +11,7 @@ import type { SearchTab } from '@/features/search/types';
 import { UserSearchList } from '@/features/search/components/UserSearchList';
 import { buildErrorMessage } from '@/utils/errorMessage';
 import { useMyProfileQuery } from '@/hooks/useMyProfile';
+import { isNetworkUnavailableError } from '@/utils/networkError';
 
 const SearchPage = () => {
   const [keyword, setKeyword] = useState('');
@@ -38,6 +41,7 @@ const SearchPage = () => {
   const activeQuery = isUsersTab ? userSearchQuery : postSearchQuery;
   const isLoading = hasKeyword && (activeQuery.isPending || activeQuery.isFetching);
   const hasError = hasKeyword && activeQuery.isError;
+  const isNetworkError = hasError && isNetworkUnavailableError(activeQuery.error);
   const errorMessage = hasError
     ? buildErrorMessage(activeQuery.error, '검색에 실패했습니다.')
     : null;
@@ -59,7 +63,15 @@ const SearchPage = () => {
     }
 
     if (isLoading) {
-      return <div className="feed-placeholder">검색 중...</div>;
+      return (
+        <div className="feed-placeholder">
+          <BouncingDotsLoader message="검색 중..." />
+        </div>
+      );
+    }
+
+    if (isNetworkError) {
+      return <NetworkErrorFallback />;
     }
 
     if (hasError && errorMessage) {

@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
+import { BouncingDotsLoader } from '@/components/BouncingDotsLoader';
+import { NetworkErrorFallback } from '@/components/NetworkErrorFallback';
 import {
   fetchMyProfile,
   registerProfile,
@@ -15,6 +17,7 @@ import { buildErrorMessage } from '@/utils/errorMessage';
 import { getProfileImageUrl, normalizeProfileImageUrl } from '@/utils/profileImage';
 import { decodeJwt } from '@/utils/jwt';
 import { isProfileSetupRequiredError } from '@/utils/profileSetup';
+import { isNetworkUnavailableError } from '@/utils/networkError';
 
 const genders = [
   { value: 'MALE', label: '남성' },
@@ -204,7 +207,15 @@ const ProfileSetupPage = () => {
   const imagePreview = useMemo(() => getProfileImageUrl(profileImage.imageUrl), [profileImage.imageUrl]);
 
   if (isLoadingProfile) {
-    return <div className="profile-setup-container">프로필 정보를 불러오는 중...</div>;
+    return (
+      <div className="profile-setup-container">
+        <BouncingDotsLoader message="프로필 정보를 불러오는 중..." />
+      </div>
+    );
+  }
+
+  if (profileQuery.isError && isNetworkUnavailableError(profileQuery.error)) {
+    return <NetworkErrorFallback />;
   }
 
   if (fatalProfileError) {
