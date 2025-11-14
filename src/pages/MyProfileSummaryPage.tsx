@@ -127,8 +127,8 @@ const MyProfileSummaryPage = () => {
           <button type="button" className="btn btn--primary" onClick={() => navigate('/profile')}>
             돌아가기
           </button>
-          <button type="button" className="btn btn--secondary" onClick={() => navigate('/profile/setup')}>
-            프로필 수정
+          <button type="button" className="btn btn--secondary" onClick={() => navigate('/profile/settings')}>
+            프로필 설정
           </button>
         </div>
       </div>

@@ -78,7 +78,7 @@ const ProfilePage = () => {
   const closeList = () => setActiveList(null);
 
   const handleEditProfile = () => {
-    navigate('/profile/setup');
+    navigate('/profile/settings');
   };
 
   const handleViewSummary = () => {
@@ -155,7 +155,7 @@ const ProfilePage = () => {
         </div>
         <div className="profile-summary-actions">
           <button type="button" className="btn btn--primary" onClick={handleEditProfile}>
-            프로필 수정
+            프로필 설정
           </button>
           <button type="button" className="btn btn--secondary" onClick={handleViewSummary}>
             상세보기

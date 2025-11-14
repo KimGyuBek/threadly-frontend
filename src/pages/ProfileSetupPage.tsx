@@ -231,7 +231,7 @@ const ProfileSetupPage = () => {
 
   return (
     <div className="profile-setup-container">
-      <h2 className="section-title">{mode === 'register' ? '프로필 설정' : '프로필 수정'}</h2>
+      <h2 className="section-title">{mode === 'register' ? '프로필 설정' : '프로필 정보 변경'}</h2>
       <p className="profile-setup-description">
         {mode === 'register'
           ? '다른 사용자에게 보여질 정보를 입력하고 첫 프로필을 완성하세요.'
