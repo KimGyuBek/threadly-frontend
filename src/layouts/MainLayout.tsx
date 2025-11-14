@@ -41,6 +41,14 @@ export const MainLayout = () => {
 
   useEffect(() => {
     if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.scrollTo(0, 0);
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
       return () => {};
     }
 
