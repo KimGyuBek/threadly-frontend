@@ -558,7 +558,7 @@ export const PostCard = ({
           disabled={toggleLikeMutation.isPending}
         >
           <Heart
-            size={18}
+            size={22}
             className="post-card__action-icon"
             color={liked ? '#ff5f6d' : '#475467'}
             fill={liked ? '#ff5f6d' : 'none'}
@@ -571,11 +571,11 @@ export const PostCard = ({
           onClick={handleCommentMetaClick}
           aria-label="댓글 보기"
         >
-          <MessageSquare size={18} />
+          <MessageSquare size={22} className="post-card__meta-icon" />
           <span>{post.commentCount}</span>
         </button>
         <div className="post-card__meta">
-          <Eye size={18} />
+          <Eye size={22} className="post-card__meta-icon" />
           <span>{post.viewCount}</span>
         </div>
       </footer>

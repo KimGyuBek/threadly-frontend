@@ -683,7 +683,12 @@ const PostCommentItem = ({ comment, postId, viewerUserId, postAuthorId }: PostCo
             onClick={handleToggleLike}
             disabled={toggleLikeMutation.isPending || !postId}
           >
-            <Heart size={14} />
+            <Heart
+              size={16}
+              className="post-comment__like-button-icon"
+              color={liked ? '#ff5f6d' : '#475467'}
+              fill={liked ? '#ff5f6d' : 'none'}
+            />
             <span>{likeCount.toLocaleString()}</span>
           </button>
           {liked ? <span className="post-comment__liked">내가 좋아요</span> : null}
