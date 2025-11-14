@@ -96,6 +96,7 @@ const HomeFeedPage = () => {
   const errorMessage = feedQuery.isError
     ? buildErrorMessage(feedQuery.error, '피드를 불러오지 못했습니다.')
     : null;
+  const showFeedFooter = !feedQuery.isLoading && !feedQuery.isError && posts.length > 0;
 
   return (
     <div className="feed-container">
@@ -129,14 +130,16 @@ const HomeFeedPage = () => {
           ))}
         </div>
       )}
-      <div ref={loadMoreRef} className="feed-footer">
-        {feedQuery.isFetchingNextPage ? (
-          <span className="feed-loading">
-            <BouncingDotsLoader size="sm" message="불러오는 중..." />
-          </span>
-        ) : null}
-        {!feedQuery.hasNextPage ? <span className="feed-end">모든 게시글을 확인했습니다.</span> : null}
-      </div>
+      {showFeedFooter ? (
+        <div ref={loadMoreRef} className="feed-footer">
+          {feedQuery.isFetchingNextPage ? (
+            <span className="feed-loading">
+              <BouncingDotsLoader size="sm" message="불러오는 중..." />
+            </span>
+          ) : null}
+          {!feedQuery.hasNextPage ? <span className="feed-end">모든 게시글을 확인했습니다.</span> : null}
+        </div>
+      ) : null}
     </div>
   );
 };

@@ -557,7 +557,12 @@ export const PostCard = ({
           onClick={handleLikeClick}
           disabled={toggleLikeMutation.isPending}
         >
-          <Heart size={18} />
+          <Heart
+            size={18}
+            className="post-card__action-icon"
+            color={liked ? '#ff5f6d' : '#475467'}
+            fill={liked ? '#ff5f6d' : 'none'}
+          />
           <span>{likeCount}</span>
         </button>
         <button

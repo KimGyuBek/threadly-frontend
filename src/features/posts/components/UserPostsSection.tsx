@@ -111,6 +111,9 @@ export const UserPostsSection = ({
     return null;
   }
 
+  const showFooter =
+    !userPostsQuery.isLoading && !userPostsQuery.isError && posts.length > 0 && !forbiddenErrorMessage;
+
   return (
     <div className="profile-section" data-testid="user-posts-section">
       <h3>{title}</h3>
@@ -146,16 +149,16 @@ export const UserPostsSection = ({
           ))}
         </div>
       )}
-      <div ref={loadMoreRef} className="feed-footer">
-        {userPostsQuery.isFetchingNextPage ? (
-          <span className="feed-loading">
-            <BouncingDotsLoader size="sm" message="불러오는 중..." />
-          </span>
-        ) : null}
-        {!userPostsQuery.hasNextPage && posts.length > 0 ? (
-          <span className="feed-end">모든 게시글을 확인했습니다.</span>
-        ) : null}
-      </div>
+      {showFooter ? (
+        <div ref={loadMoreRef} className="feed-footer">
+          {userPostsQuery.isFetchingNextPage ? (
+            <span className="feed-loading">
+              <BouncingDotsLoader size="sm" message="불러오는 중..." />
+            </span>
+          ) : null}
+          {!userPostsQuery.hasNextPage ? <span className="feed-end">모든 게시글을 확인했습니다.</span> : null}
+        </div>
+      ) : null}
     </div>
   );
 };
