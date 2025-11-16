@@ -101,16 +101,25 @@ const ProfileSetupPage = () => {
     }
   }, [prefilled, profileQuery.data, profileQuery.error, profileQuery.isError, profileQuery.isSuccess, skipProfileFetch]);
 
+  const getTrimmedForm = () => ({
+    nickname: form.nickname.trim(),
+    statusMessage: form.statusMessage.trim(),
+    bio: form.bio.trim(),
+    phone: form.phone.trim(),
+  });
+
   const registerMutation = useMutation({
-    mutationFn: () =>
-      registerProfile({
-        nickname: form.nickname.trim(),
-        statusMessage: form.statusMessage ?? '',
-        bio: form.bio ?? '',
-        phone: form.phone ?? '',
+    mutationFn: () => {
+      const trimmed = getTrimmedForm();
+      return registerProfile({
+        nickname: trimmed.nickname,
+        statusMessage: trimmed.statusMessage,
+        bio: trimmed.bio,
+        phone: trimmed.phone,
         gender: form.gender,
         profileImageUrl: profileImage.imageUrl,
-      }),
+      });
+    },
     onSuccess: (tokens) => {
       setTokens(tokens);
       toast.success('프로필이 설정되었습니다.');
@@ -122,14 +131,16 @@ const ProfileSetupPage = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: () =>
-      updateProfile({
-        nickname: form.nickname.trim(),
-        statusMessage: form.statusMessage ?? '',
-        bio: form.bio ?? '',
-        phone: form.phone ?? '',
+    mutationFn: () => {
+      const trimmed = getTrimmedForm();
+      return updateProfile({
+        nickname: trimmed.nickname,
+        statusMessage: trimmed.statusMessage,
+        bio: trimmed.bio,
+        phone: trimmed.phone,
         profileImageId: profileImage.imageId ?? null,
-      }),
+      });
+    },
     onSuccess: () => {
       toast.success('프로필을 저장했습니다.');
       queryClient.invalidateQueries({ queryKey: ['me', 'profile'] });
@@ -183,8 +194,25 @@ const ProfileSetupPage = () => {
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!form.nickname.trim()) {
+    const trimmed = getTrimmedForm();
+    if (!trimmed.nickname) {
       toast.error('닉네임을 입력하세요.');
+      return;
+    }
+    if (mode === 'register' && !trimmed.statusMessage) {
+      toast.error('상태 메시지를 입력하세요.');
+      return;
+    }
+    if (mode === 'register' && !trimmed.bio) {
+      toast.error('소개를 입력하세요.');
+      return;
+    }
+    if (mode === 'register' && !trimmed.phone) {
+      toast.error('연락처를 입력하세요.');
+      return;
+    }
+    if (!form.gender) {
+      toast.error('성별을 선택하세요.');
       return;
     }
     if (uploadMutation.isPending) {
@@ -293,6 +321,7 @@ const ProfileSetupPage = () => {
           className="auth-input"
           placeholder="한 줄 소개"
           disabled={inFlight}
+          required={mode === 'register'}
         />
 
         <label className="auth-label" htmlFor="bio">
@@ -307,6 +336,7 @@ const ProfileSetupPage = () => {
           placeholder="자기소개를 작성하세요"
           rows={6}
           disabled={inFlight}
+          required={mode === 'register'}
         />
 
         <label className="auth-label" htmlFor="phone">
@@ -315,12 +345,13 @@ const ProfileSetupPage = () => {
         <input
           id="phone"
           name="phone"
-          type="text"
+          type="tel"
           value={form.phone}
           onChange={handleChange}
           className="auth-input"
           placeholder="010-0000-0000"
           disabled={inFlight}
+          required={mode === 'register'}
         />
 
         <label className="auth-label" htmlFor="gender">
@@ -333,6 +364,7 @@ const ProfileSetupPage = () => {
           onChange={handleChange}
           className="auth-input"
           disabled={inFlight || mode === 'update'}
+          required
         >
           {genders.map((gender) => (
             <option key={gender.value} value={gender.value}>

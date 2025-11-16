@@ -53,10 +53,10 @@ const LoginPage = () => {
         userName: userName.trim(),
         email: email.trim(),
         password,
-        phone: phone.trim() || undefined,
+        phone: phone.trim(),
       }),
     onSuccess: () => {
-      toast.success('회원가입이 완료되었습니다. 로그인 후 이용하세요.');
+      toast.success('회원가입이 완료되었습니다. 인증메일을 확인해주세요.');
       setMode('login');
       setPassword('');
       setErrorMessage(null);
@@ -85,6 +85,10 @@ const LoginPage = () => {
     }
     if (!email || !password) {
       setErrorMessage('이메일과 비밀번호를 모두 입력하세요.');
+      return;
+    }
+    if (!phone.trim()) {
+      setErrorMessage('연락처를 입력하세요.');
       return;
     }
 
@@ -181,7 +185,7 @@ const LoginPage = () => {
           {mode === 'signup' ? (
             <>
               <label className="auth-label" htmlFor="phone">
-                연락처 (선택)
+                연락처
               </label>
               <input
                 id="phone"
@@ -192,6 +196,7 @@ const LoginPage = () => {
                 className="auth-input"
                 placeholder="010-1234-5678"
                 disabled={isSubmitting}
+                required
               />
             </>
           ) : null}
