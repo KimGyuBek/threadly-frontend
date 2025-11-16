@@ -103,9 +103,9 @@ const ProfileSetupPage = () => {
 
   const getTrimmedForm = () => ({
     nickname: form.nickname.trim(),
-    statusMessage: form.statusMessage.trim(),
-    bio: form.bio.trim(),
-    phone: form.phone.trim(),
+    statusMessage: (form.statusMessage ?? '').trim(),
+    bio: (form.bio ?? '').trim(),
+    phone: (form.phone ?? '').trim(),
   });
 
   const registerMutation = useMutation({
