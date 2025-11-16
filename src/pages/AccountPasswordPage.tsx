@@ -3,6 +3,7 @@ import type { ChangeEvent, FormEvent } from 'react';
 import { toast } from 'react-toastify';
 
 import { changeAccountPassword, verifyPassword } from '@/features/account/api/accountApi';
+import { useComingSoonNotice } from '@/hooks/useComingSoonNotice';
 import { buildErrorMessage } from '@/utils/errorMessage';
 import { isThreadlyApiError } from '@/utils/threadlyError';
 
@@ -13,6 +14,7 @@ interface VerificationState {
 }
 
 const AccountPasswordPage = () => {
+  useComingSoonNotice();
   const [form, setForm] = useState({
     currentPassword: '',
     newPassword: '',

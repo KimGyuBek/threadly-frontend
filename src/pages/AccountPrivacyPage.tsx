@@ -2,8 +2,11 @@ import { useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { toast } from 'react-toastify';
 
+import { useComingSoonNotice } from '@/hooks/useComingSoonNotice';
+
 
 const AccountPrivacyPage = () => {
+  useComingSoonNotice();
   const [privacy, setPrivacy] = useState<'PUBLIC' | 'PRIVATE'>('PUBLIC');
 
   const handlePrivacyChange = (event: ChangeEvent<HTMLSelectElement>) => {

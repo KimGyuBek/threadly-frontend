@@ -1,6 +1,8 @@
 import { AccountSettingsMenu } from '@/components/AccountSettingsMenu';
+import { useComingSoonNotice } from '@/hooks/useComingSoonNotice';
 
 const AccountSettingsPage = () => {
+  useComingSoonNotice();
   return (
     <div className="profile-setup-container">
       <h2 className="section-title">계정 설정</h2>

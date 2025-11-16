@@ -1,7 +1,9 @@
 import { toast } from 'react-toastify';
 
+import { useComingSoonNotice } from '@/hooks/useComingSoonNotice';
 
 const AccountDeletionPage = () => {
+  useComingSoonNotice();
   const handleDeleteRequest = () => {
     toast.warn('계정 탈퇴 요청 기능은 준비 중입니다.');
   };

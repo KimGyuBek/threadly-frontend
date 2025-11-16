@@ -1,7 +1,9 @@
 import { toast } from 'react-toastify';
 
+import { useComingSoonNotice } from '@/hooks/useComingSoonNotice';
 
 const AccountDeactivationPage = () => {
+  useComingSoonNotice();
   const handleDeactivate = () => {
     toast.info('계정 비활성화 기능은 준비 중입니다.');
   };
