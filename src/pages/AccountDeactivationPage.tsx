@@ -1,6 +1,5 @@
 import { toast } from 'react-toastify';
 
-import { AccountSettingsMenu } from '@/components/AccountSettingsMenu';
 
 const AccountDeactivationPage = () => {
   const handleDeactivate = () => {
@@ -17,9 +16,6 @@ const AccountDeactivationPage = () => {
       <p className="profile-setup-description">
         계정을 잠시 쉬게 하고 싶을 때 비활성화하세요. 계정과 데이터는 유지되며, 다시 로그인하면 즉시 복구됩니다.
       </p>
-
-      <AccountSettingsMenu />
-
       <section className="account-settings-card" style={{ marginTop: '1.5rem' }}>
         <ul className="account-settings-list">
           <li>프로필과 게시글은 다른 사용자에게 숨겨집니다.</li>

@@ -2,7 +2,6 @@ import { useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { toast } from 'react-toastify';
 
-import { AccountSettingsMenu } from '@/components/AccountSettingsMenu';
 
 const AccountPrivacyPage = () => {
   const [privacy, setPrivacy] = useState<'PUBLIC' | 'PRIVATE'>('PUBLIC');
@@ -19,9 +18,6 @@ const AccountPrivacyPage = () => {
       <p className="profile-setup-description">
         프로필과 게시글을 누구에게 공개할지 선택하세요. 설정은 언제든지 다시 변경할 수 있습니다.
       </p>
-
-      <AccountSettingsMenu />
-
       <section className="account-settings-card" style={{ marginTop: '1.5rem' }}>
         <label className="auth-label" htmlFor="privacySelect">
           공개 범위

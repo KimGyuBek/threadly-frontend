@@ -1,53 +1,81 @@
-# Threadly Frontend (React)
+# threadly-front
 
-Threadly 프론트는 threadly-service(8080)와 notification-service(8081)를 연동해 로그인, 알림 목록/상세, WebSocket 기반 실시간 알림을 제공하는 React + TypeScript + Vite 애플리케이션입니다.
+### Threadly 플랫폼의 **프론트엔드 애플리케이션**입니다.
 
-## 주요 기능
-- 첫 화면에서 회원가입/로그인 토글 지원
-- JWT 로그인/로그아웃 및 자동 토큰 재발급 (Axios 인터셉터 기반)
-- 커서 기반 무한 스크롤 알림 목록, 일괄 읽음/삭제 처리
-- 알림 상세 보기 및 메타데이터 확인
-- WebSocket 실시간 알림 수신, 토스트 알림, 자동 재연결 & ACK 전송
-- React Query로 데이터 캐싱 및 상태 관리, Zustand 로컬 토큰 저장소
+**플랫폼은 MSA 구조로 구성되어 있으며,**
 
-## 환경 변수
-루트에 `.env.local`을 생성하고 필요 시 API 엔드포인트를 변경할 수 있습니다.
+`threadly-front`는 사용자 인터페이스를 담당하는 React 기반 SPA입니다.
 
-```bash
-VITE_API_BASE_URL=https://api.threadly.kr
-VITE_NOTIFICATION_API_BASE_URL=https://api.threadly.kr
-VITE_NOTIFICATION_WS_URL=ws://api.threadly.kr/ws/notifications
-```
+<br>
 
-프로덕션 주소(`https://api.threadly.kr`)가 기본값이라 별도 설정 없이도 동작하며, 로컬 개발 시에는 위 값을 `http://localhost:8080` 등으로 교체해 사용하면 됩니다.
+> **이 프로젝트는 AI 코딩 도구 Codex를 활용하여 작성되었으며, 지속적으로 업데이트 중입니다.**
+>
+> 현재 완성본이 아니며, 기능 개선 및 추가 작업이 진행되고 있습니다.
 
-## 개발 환경 준비
-1. 의존성 설치
-   ```bash
-   npm install
-   ```
-2. 개발 서버 실행
-   ```bash
-   npm run dev
-   ```
-   기본 포트는 `http://localhost:5173`입니다.
-3. 프로덕션 빌드
-   ```bash
-   npm run build
-   ```
-4. 빌드 결과 미리보기
-   ```bash
-   npm run preview
-   ```
+<br>
 
-> ❗️ npm 캐시 권한 문제로 설치가 실패한다면 `npm install` 앞에 `NPM_CONFIG_CACHE=$(pwd)/.npm-cache`를 임시로 지정하세요.
+> **전체 서비스 아키텍처 및 시스템 구성은 메인 레포에서 확인할 수 있습니다.**
+ 
+### 메인 레포: https://github.com/KimGyuBek/Threadly
+### Wiki 문서: https://github.com/KimGyuBek/Threadly/wiki
+
+### threadly-service(API): https://github.com/KimGyuBek/threadly-service
+### notification-service: https://github.com/KimGyuBek/notification-service
+
+<br>
+
+### Threadly 서비스: https://threadly.kr
+
+---
+
+## 배포 정보
+
+- **호스팅**: AWS S3 + CloudFront
+- **프로덕션 URL**: https://threadly.kr
+- **API 엔드포인트**: https://api.threadly.kr
+
+---
+
+## 기술 스택
+
+**Frontend Framework**
+- React 19
+- TypeScript 5.9
+- Vite 7
+
+**상태 관리 & 데이터 페칭**
+- TanStack Query (React Query) 5.90
+- Zustand 5.0
+- Axios 1.13
+
+**UI & Styling**
+- Lucide React (아이콘)
+- React Toastify (알림)
+- clsx (유틸리티)
+
+**개발 도구**
+- ESLint
+- Vitest
+
+---
+
+## 프로젝트 소개
+
+Threadly 프론트엔드는 threadly-service와 notification-service를 연동해 다음 기능을 제공합니다.
+- 사용자 인증 (회원가입/로그인/OAuth2)
+- 게시글 작성, 조회, 수정, 삭제
+- 팔로우/언팔로우
+- 실시간 알림 (WebSocket)
+- 무한 스크롤 피드
+
+
 
 ## 백엔드 요구사항
 - threadly-service가 `http://localhost:8080` 에서 `/api/auth/**`, `/api/notifications/**` 등 REST API를 제공합니다.
 - notification-service가 `http://localhost:8081` 에서 알림 REST 및 `ws://localhost:8081/ws/notifications` WebSocket을 제공합니다.
 - 두 서비스 모두 CORS 헤더가 열려 있거나, 프런트가 동일 호스트/포트에서 reverse proxy 형태로 접근해야 합니다.
 
-## 구조 개요
+## 구조
 ```
 src/
 ├── api/                # axios 인스턴스 및 API 래퍼
@@ -61,10 +89,13 @@ src/
 └── utils/              # 포맷터 및 매퍼
 ```
 
-## 확인 체크리스트
-- [ ] `npm run dev` 실행 후 로그인 → 알림 목록 → 알림 상세 플로우가 정상 작동
-- [ ] 액세스 토큰 만료 시 자동 재발급 및 재시도 동작 확인
-- [ ] WebSocket 접속 상태 배지가 `실시간 연결됨`으로 표시되고, 새 알림 수신 시 토스트와 목록 갱신 확인
-- [ ] 커서 기반 "더 보기" 버튼으로 페이지네이션이 진행되는지 확인
+## 환경 변수
+루트에 `.env.local`을 생성하고 필요 시 API 엔드포인트를 변경할 수 있습니다.
 
-필요 시 Vite Proxy 설정 등 추가 구성이 가능하며, 프로젝트 전반은 TypeScript와 엄격한 타입 체크(Strict 모드)로 작성되어 있습니다.
+```bash
+VITE_API_BASE_URL=https://api.threadly.kr
+VITE_NOTIFICATION_API_BASE_URL=https://api.threadly.kr
+VITE_NOTIFICATION_WS_URL=ws://api.threadly.kr/ws/notifications
+```
+
+프로덕션 주소(`https://api.threadly.kr`)가 기본값이라 별도 설정 없이도 동작하며, 로컬 개발 시에는 위 값을 `http://localhost:8080` 등으로 교체해 사용하면 됩니다.
