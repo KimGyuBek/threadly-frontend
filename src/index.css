@@ -171,6 +171,79 @@ a {
   gap: 1rem;
 }
 
+.auth-email-group {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(140px, 0.8fr);
+  gap: 0.5rem;
+  align-items: center;
+  width: 100%;
+  position: relative;
+}
+
+.auth-email-group__local {
+  width: 100%;
+}
+
+.auth-email-group__at {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.auth-email-custom-input {
+  margin-top: 0.25rem;
+}
+
+.auth-email-domain {
+  width: 100%;
+  position: relative;
+}
+
+.auth-email-domain__trigger {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  text-align: left;
+}
+
+.auth-email-domain__chevron {
+  font-size: 0.9rem;
+  margin-left: 0.5rem;
+}
+
+.auth-email-domain__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 100%;
+  background: #fff;
+  border: 1px solid var(--color-border-soft);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  z-index: 20;
+  padding: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  list-style: none;
+}
+
+.auth-email-domain__option {
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.auth-email-domain__option:hover {
+  background: rgba(255, 95, 109, 0.08);
+}
+
 .auth-label {
   font-size: 0.9rem;
   color: var(--color-text-secondary);
@@ -183,6 +256,11 @@ a {
   background: #fdfdfd;
   color: var(--color-text-primary);
   transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.auth-input--error {
+  border-color: #f04438;
+  box-shadow: 0 0 0 1px rgba(240, 68, 56, 0.3);
 }
 
 .auth-input:focus {
@@ -198,6 +276,12 @@ a {
 .auth-error {
   color: #f04438;
   font-size: 0.9rem;
+}
+
+.auth-field-error {
+  color: #f04438;
+  font-size: 0.85rem;
+  margin-top: -0.4rem;
 }
 
 .auth-submit {
