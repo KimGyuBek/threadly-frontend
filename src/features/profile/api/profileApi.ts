@@ -13,6 +13,7 @@ import type { AuthTokens } from '@/types/auth';
 import { toProfile, toMyProfile } from '@/utils/profileMapper';
 import { unwrapThreadlyResponse } from '@/utils/api';
 import { normalizeProfileImageUrl } from '@/utils/profileImage';
+import { compressImageFile } from '@/utils/imageCompression';
 
 export interface RegisterProfilePayload {
   nickname: string;
@@ -83,8 +84,9 @@ export const updateProfile = async (payload: UpdateProfilePayload): Promise<void
 };
 
 export const uploadProfileImage = async (file: File): Promise<UploadedProfileImage> => {
+  const optimizedFile = await compressImageFile(file);
   const formData = new FormData();
-  formData.append('image', file);
+  formData.append('image', optimizedFile);
 
   const response = await threadlyApi.post('/api/me/profile/image', formData, {
     headers: {

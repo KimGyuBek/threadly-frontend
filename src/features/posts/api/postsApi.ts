@@ -12,6 +12,7 @@ import { toFeedResponse, toFeedPost, toPostCommentsPage, toPostComment } from '@
 import type { AxiosRequestConfig } from 'axios';
 import { unwrapThreadlyResponse } from '@/utils/api';
 import { normalizeProfileImageUrl } from '@/utils/profileImage';
+import { compressImageFile } from '@/utils/imageCompression';
 
 interface FeedParams {
   cursorTimestamp?: string;
@@ -69,8 +70,9 @@ export const uploadPostImages = async (files: File[]): Promise<UploadedPostImage
     return [];
   }
 
+  const optimizedFiles = await Promise.all(files.map((file) => compressImageFile(file)));
   const formData = new FormData();
-  files.forEach((file) => formData.append('images', file));
+  optimizedFiles.forEach((file) => formData.append('images', file));
 
   const response = await threadlyApi.post('/api/post-images', formData, {
     headers: {
